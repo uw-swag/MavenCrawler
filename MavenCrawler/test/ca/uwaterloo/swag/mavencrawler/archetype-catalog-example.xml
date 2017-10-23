@@ -1,0 +1,15 @@
+<archetype-catalog>
+	<archetypes>
+		<archetype>
+			<groupId>am.ik.archetype</groupId>
+			<artifactId>maven-reactjs-blank-archetype</artifactId>
+			<version>1.0.0</version>
+			<description>Blank Project for React.js</description>
+		</archetype>
+		<archetype>
+			<groupId>us.fatehi</groupId>
+			<artifactId>schemacrawler-archetype-plugin-lint</artifactId>
+			<version>11.02.01</version>
+		</archetype>
+	</archetypes>
+</archetype-catalog>
