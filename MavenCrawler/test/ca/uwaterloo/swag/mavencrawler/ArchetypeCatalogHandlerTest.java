@@ -35,7 +35,7 @@ public class ArchetypeCatalogHandlerTest {
 	}
 
 	@Test
-	public void test() throws ParserConfigurationException, SAXException, IOException {
+	public void testParsing() throws ParserConfigurationException, SAXException, IOException {
 		
 		// Given
 		InputStream stream = this.getClass().getResourceAsStream("archetype-catalog-example.xml");
