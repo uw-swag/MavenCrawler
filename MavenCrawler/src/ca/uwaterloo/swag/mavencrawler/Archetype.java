@@ -1,5 +1,9 @@
 package ca.uwaterloo.swag.mavencrawler;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
+
 public class Archetype {
 	
 	private String groupId;
@@ -76,6 +80,12 @@ public class Archetype {
 	public String toString() {
 		return "Archetype [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
 				+ ", description=" + description + "]";
+	}
+	public static void checkIndexesInCollection(MongoCollection<Archetype> collection) {
+		// TODO Auto-generated method stub
+		IndexOptions indexOptions = new IndexOptions().unique(true);
+		collection.createIndex(Indexes.ascending("groupId", "artifactId"), indexOptions);
+		
 	}
 
 }
