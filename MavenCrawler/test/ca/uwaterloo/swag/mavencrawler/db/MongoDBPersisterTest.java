@@ -117,6 +117,8 @@ public class MongoDBPersisterTest {
 		assertEquals("authdatabase", persister.getAuthDatabase());
 		assertEquals("username", persister.getUsername());
 		assertEquals("testpassword", persister.getPassword());
+		assertTrue(persister.isSSLEnabled());
+		assertEquals("replica", persister.getReplicaSetName());
 		assertEquals("maindatabase", persister.getDatabaseName());
 	}
 	

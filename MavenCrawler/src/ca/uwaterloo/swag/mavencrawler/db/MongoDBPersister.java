@@ -59,6 +59,8 @@ public class MongoDBPersister {
 	private String authDatabase = MONGODB_AUTHDATABASE;
 	private String username = "admin";
 	private String password = "myPassword";
+	private Boolean sslEnabled = false;
+	private String replicaSetName = null;
 	private String databaseName = "MavenCrawler";
 	
 	private Logger logger;
@@ -71,6 +73,8 @@ public class MongoDBPersister {
 		AUTHDATABASE,
 		USERNAME,
 		PASSWORD,
+		SSL_ENABLED,
+		REPLICASETNAME,
 		MAINDATABASE
 	}
 
@@ -93,6 +97,8 @@ public class MongoDBPersister {
 		persister.authDatabase = properties.getProperty(PropertyType.AUTHDATABASE.name());
 		persister.username = properties.getProperty(PropertyType.USERNAME.name());
 		persister.password = properties.getProperty(PropertyType.PASSWORD.name());
+		persister.sslEnabled = Boolean.valueOf(properties.getProperty(PropertyType.SSL_ENABLED.name()));
+		persister.replicaSetName = properties.getProperty(PropertyType.REPLICASETNAME.name());
 		persister.databaseName = properties.getProperty(PropertyType.MAINDATABASE.name());
 		
 		return persister;
@@ -146,6 +152,22 @@ public class MongoDBPersister {
 		this.password = password;
 	}
 
+	public Boolean isSSLEnabled() {
+		return sslEnabled;
+	}
+
+	public void setSslEnabled(Boolean sslEnabled) {
+		this.sslEnabled = sslEnabled;
+	}
+
+	public String getReplicaSetName() {
+		return replicaSetName;
+	}
+
+	public void setReplicaSetName(String replicaSetName) {
+		this.replicaSetName = replicaSetName;
+	}
+
 	public String getDatabaseName() {
 		return databaseName;
 	}
@@ -187,7 +209,11 @@ public class MongoDBPersister {
 		// Register classes
 		CodecRegistry pojoCodecRegistry = CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
 				CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build()));
-		MongoClientOptions options = MongoClientOptions.builder().codecRegistry(pojoCodecRegistry).build();
+		MongoClientOptions options = MongoClientOptions.builder()
+				.codecRegistry(pojoCodecRegistry)
+				.sslEnabled(sslEnabled)
+				.requiredReplicaSetName(replicaSetName)
+				.build();
 		
 		// Creating a Mongo client 
 		mongo = new MongoClient(new ServerAddress(getHost(), getPort()), credentials, options); 
