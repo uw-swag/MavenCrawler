@@ -94,6 +94,7 @@ public class ArchetypeTest {
 		assertNotNull(indexKey);
 		assertNotNull(indexKey.get("groupId"));
 		assertNotNull(indexKey.get("artifactId"));
+		assertNotNull(indexKey.get("version"));
 		
 		_mongod.stop();
 		_mongodExe.stop();

@@ -179,8 +179,12 @@ public class MongoDBPersisterTest {
 		// Given
 		Archetype archetype1 = new Archetype();
 		Archetype archetype2 = new Archetype();
-		archetype1.setArtifactId("archetype1");
-		archetype2.setArtifactId("archetype2");
+		archetype1.setGroupId("group");
+		archetype2.setGroupId("group");
+		archetype1.setArtifactId("artifact");
+		archetype2.setArtifactId("artifact");
+		archetype1.setVersion("1");
+		archetype2.setVersion("2");
 		
 		// When
 		persister.upsertArchetypes(Arrays.asList(archetype1, archetype2));
@@ -192,10 +196,9 @@ public class MongoDBPersisterTest {
 		
 		assertNotNull(documents);
 		assertEquals(2, documents.size());
-		assertEquals("archetype1", documents.get(0).get("artifactId"));
-		assertEquals("archetype2", documents.get(1).get("artifactId"));
+		assertEquals("1", documents.get(0).get("version"));
+		assertEquals("2", documents.get(1).get("version"));
 	}
-
 	
 	@Test
 	public void testUpdateArchetypes() {
@@ -205,6 +208,7 @@ public class MongoDBPersisterTest {
 		archetype.setGroupId("group1");
 		archetype.setArtifactId("archetype1");
 		archetype.setVersion("1");
+		archetype.setDescription("description1");
 		persister.upsertArchetypes(Arrays.asList(archetype));
 
 		MongoDatabase db = _mongo.getDatabase("TestDatabase");
@@ -212,7 +216,7 @@ public class MongoDBPersisterTest {
 		assertEquals("1", collection.find().first().get("version"));
 		
 		// When
-		archetype.setVersion("2");
+		archetype.setDescription("description2");
 		persister.upsertArchetypes(Arrays.asList(archetype));
 		
 		// Then
@@ -222,7 +226,8 @@ public class MongoDBPersisterTest {
 		assertEquals(1, documents.size());
 		assertEquals("archetype1", documents.get(0).get("artifactId"));
 		assertEquals("group1", documents.get(0).get("groupId"));
-		assertEquals("2", documents.get(0).get("version"));
+		assertEquals("1", documents.get(0).get("version"));
+		assertEquals("description2", documents.get(0).get("description"));
 	}
 
 }

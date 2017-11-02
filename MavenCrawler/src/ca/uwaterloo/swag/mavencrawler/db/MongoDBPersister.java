@@ -240,7 +240,9 @@ public class MongoDBPersister {
 		
 		for (Archetype archetype : archetypesList) {
 			upsertRequests.add(new UpdateOneModel<Archetype>(
-					and(eq("groupId", archetype.getGroupId()), eq("artifactId", archetype.getArtifactId())), 
+					and(eq("groupId", archetype.getGroupId()), 
+						eq("artifactId", archetype.getArtifactId()),
+						eq("version", archetype.getVersion())), 
 					new Document("$set", archetype), 
 					updateOptions));
 		}
