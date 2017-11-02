@@ -186,7 +186,7 @@ public class MongoDBPersister {
 		
 		try {
 			Document ping = mongo.getDatabase(getDatabaseName()).runCommand(new BsonDocument("ping", new BsonInt32(1)));
-			return ping.get("ok").equals(1.0);
+			return (ping.get("ok").equals(1.0) || ping.get("ok").equals(1));
 		} catch (Exception e) {
 			LoggerHelper.logError(logger, e, "Could not connect to Mongo Database " + getDatabaseName());
 			return false;

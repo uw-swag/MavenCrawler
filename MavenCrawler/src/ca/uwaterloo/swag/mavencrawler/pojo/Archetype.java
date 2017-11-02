@@ -82,8 +82,7 @@ public class Archetype {
 				+ ", description=" + description + "]";
 	}
 	public static void checkIndexesInCollection(MongoCollection<Archetype> collection) {
-		IndexOptions indexOptions = new IndexOptions().unique(true);
-		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"), indexOptions);
+		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"));
 	}
 
 }
