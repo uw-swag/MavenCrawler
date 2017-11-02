@@ -13,7 +13,9 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.SAXException;
 
+import ca.uwaterloo.swag.mavencrawler.db.MongoDBPersister;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
+import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
 
 public class Crawler {
 	

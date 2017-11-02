@@ -1,4 +1,4 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.xml;
 
 import static org.junit.Assert.*;
 
@@ -15,6 +15,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xml.sax.SAXException;
+
+import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
 
 public class ArchetypeCatalogHandlerTest {
 
@@ -38,7 +41,7 @@ public class ArchetypeCatalogHandlerTest {
 	public void testParsing() throws ParserConfigurationException, SAXException, IOException {
 		
 		// Given
-		InputStream stream = this.getClass().getResourceAsStream("archetype-catalog-example.xml");
+		InputStream stream = this.getClass().getResourceAsStream("../archetype-catalog-example.xml");
 		SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 		ArchetypeCatalogHandler handler = new ArchetypeCatalogHandler();
 		

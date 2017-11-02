@@ -1,36 +1,40 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.xml;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
+
 /**
- * XML handler to handle archetype-catalog.xml file from the root of a Maven repository.
+ * XML handler to handle maven-metadata.xml file from the root of a library in a Maven repository.
  * 
  * @author cbdeassi
  */
-public class ArchetypeCatalogHandler extends DefaultHandler {
-	
+public class MavenMetadataHandler extends DefaultHandler {
+
 	private enum ElementType {
-		ARCHETYPE,
 		GROUPID,
 		ARTIFACTID,
+		LATEST,
+		RELEASE,
 		VERSION,
-		DESCRIPTION,
+		LASTUPDATED,
 		NONE
 	}
-
+	
+	private DateFormat mavenFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 	private ElementType currentElementType = ElementType.NONE;
-	private Archetype currentArchetype = null;
-	private List<Archetype> archetypes = new ArrayList<Archetype>();
-	
-	public List<Archetype> getArchetypes() {
-		return archetypes;
+	private Metadata metadata = new Metadata();
+
+	public Metadata getMetadata() {
+		return metadata;
 	}
-	
+
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
 		super.startElement(uri, localName, qName, attributes);
@@ -40,11 +44,6 @@ public class ArchetypeCatalogHandler extends DefaultHandler {
 		} catch (Exception e) {
 			// If an unknown element is found
 			currentElementType = ElementType.NONE;
-		}
-		
-		if (currentElementType == ElementType.ARCHETYPE) {
-			currentArchetype = new Archetype();
-			this.archetypes.add(currentArchetype);
 		}
 	}
 	
@@ -57,24 +56,33 @@ public class ArchetypeCatalogHandler extends DefaultHandler {
 	}
 	
 	@Override
-	// Reading data from inside an element
 	public void characters(char[] ch, int start, int length) throws SAXException {
 		super.characters(ch, start, length);
-		
 		String value = new String(ch, start, length);
 		
 		switch (currentElementType) {
 		case GROUPID:
-			currentArchetype.setGroupId(value);
+			metadata.setGroupId(value);
 			break;
 		case ARTIFACTID:
-			currentArchetype.setArtifactId(value);
+			metadata.setArtifactId(value);
+			break;
+		case LATEST:
+			metadata.setLatest(value);
+			break;
+		case RELEASE:
+			metadata.setRelease(value);
 			break;
 		case VERSION:
-			currentArchetype.setVersion(value);
+			metadata.getVersions().add(value);
 			break;
-		case DESCRIPTION:
-			currentArchetype.setDescription(value);
+		case LASTUPDATED:
+			try {
+				metadata.setLastUpdated(mavenFormat.parse(value));
+			} catch (ParseException e) {
+				// No problem if last updated date is not available, just make sure no garbage is collected.
+				metadata.setLastUpdated(null);
+			}
 			break;
 		default:
 			break;
@@ -85,5 +93,4 @@ public class ArchetypeCatalogHandler extends DefaultHandler {
 	public void endDocument() throws SAXException {
 		super.endDocument();
 	}
-
 }

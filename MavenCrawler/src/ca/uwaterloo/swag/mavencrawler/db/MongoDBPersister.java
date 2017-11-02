@@ -1,4 +1,4 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.db;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
@@ -26,6 +26,7 @@ import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
+import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
 
 public class MongoDBPersister {
 

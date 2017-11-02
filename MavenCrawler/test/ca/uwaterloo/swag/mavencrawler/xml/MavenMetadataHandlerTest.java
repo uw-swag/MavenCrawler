@@ -1,4 +1,4 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.xml;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -17,6 +17,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xml.sax.SAXException;
+
+import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
+import ca.uwaterloo.swag.mavencrawler.xml.MavenMetadataHandler;
 
 public class MavenMetadataHandlerTest {
 
@@ -45,7 +48,7 @@ public class MavenMetadataHandlerTest {
 	public void testParsingMultipleVersions() throws ParserConfigurationException, SAXException, IOException {
 		
 		// Given
-		InputStream stream = this.getClass().getResourceAsStream("maven-metadata-example-multiple.xml");
+		InputStream stream = this.getClass().getResourceAsStream("../maven-metadata-example-multiple.xml");
 		
 		// When
 		parser.parse(stream, handler);
@@ -77,7 +80,7 @@ public class MavenMetadataHandlerTest {
 	public void testParsingSingleVersion() throws ParserConfigurationException, SAXException, IOException {
 		
 		// Given
-		InputStream stream = this.getClass().getResourceAsStream("maven-metadata-example-single.xml");
+		InputStream stream = this.getClass().getResourceAsStream("../maven-metadata-example-single.xml");
 		
 		// When
 		parser.parse(stream, handler);

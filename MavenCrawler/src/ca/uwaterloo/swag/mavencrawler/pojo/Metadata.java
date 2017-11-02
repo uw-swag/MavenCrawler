@@ -1,4 +1,4 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.pojo;
 
 import java.util.ArrayList;
 import java.util.Date;

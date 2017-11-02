@@ -1,4 +1,4 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.pojo;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;

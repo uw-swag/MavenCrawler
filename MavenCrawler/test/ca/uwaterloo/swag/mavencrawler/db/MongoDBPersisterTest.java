@@ -1,4 +1,4 @@
-package ca.uwaterloo.swag.mavencrawler;
+package ca.uwaterloo.swag.mavencrawler.db;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,6 +23,8 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
+import ca.uwaterloo.swag.mavencrawler.db.MongoDBPersister;
+import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -102,7 +104,7 @@ public class MongoDBPersisterTest {
 		// Given
 		Logger aLogger = Logger.getLogger(this.getClass().getName());
 		Properties properties = new Properties();
-		properties.load(this.getClass().getResourceAsStream("database-example.conf"));
+		properties.load(this.getClass().getResourceAsStream("../database-example.conf"));
 		
 		// When
 		MongoDBPersister persister = MongoDBPersister.newInstance(aLogger, properties);
