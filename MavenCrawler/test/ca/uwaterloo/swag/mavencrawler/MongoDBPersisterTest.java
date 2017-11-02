@@ -5,9 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 import org.bson.Document;
@@ -76,7 +78,7 @@ public class MongoDBPersisterTest {
 	}
 
 	@Test
-	public void testFactoryMethodShouldNotReturnNull() {
+	public void testFactoryMethodShouldInitializeDefaultValues() {
 		
 		// Given
 		Logger aLogger = Logger.getLogger(this.getClass().getName());
@@ -86,8 +88,37 @@ public class MongoDBPersisterTest {
 		
 		// Then
 		assertNotNull(persister);
+		assertEquals("localhost", persister.getHost());
+		assertEquals(27017, persister.getPort().intValue());
+		assertFalse(persister.isAuthEnabled());
+		assertEquals("admin", persister.getAuthDatabase());
+		assertEquals("admin", persister.getUsername());
+		assertEquals("myPassword", persister.getPassword());
+		assertEquals("MavenCrawler", persister.getDatabaseName());
 	}
 
+	@Test
+	public void testFactoryMethodWithProperties() throws IOException {
+		
+		// Given
+		Logger aLogger = Logger.getLogger(this.getClass().getName());
+		Properties properties = new Properties();
+		properties.load(this.getClass().getResourceAsStream("database-example.conf"));
+		
+		// When
+		MongoDBPersister persister = MongoDBPersister.newInstance(aLogger, properties);
+		
+		// Then
+		assertNotNull(persister);
+		assertEquals("192.168.1.1", persister.getHost());
+		assertEquals(10000, persister.getPort().intValue());
+		assertTrue(persister.isAuthEnabled());
+		assertEquals("authdatabase", persister.getAuthDatabase());
+		assertEquals("username", persister.getUsername());
+		assertEquals("testpassword", persister.getPassword());
+		assertEquals("maindatabase", persister.getDatabaseName());
+	}
+	
 	@Test
 	public void testConnect() {
 

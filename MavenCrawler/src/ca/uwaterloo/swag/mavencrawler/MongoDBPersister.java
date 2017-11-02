@@ -5,6 +5,7 @@ import static com.mongodb.client.model.Filters.eq;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,16 +47,28 @@ public class MongoDBPersister {
 	
 	private static final String MONGODB_AUTHDATABASE = "admin";
 	private static final String ARCHETYPE_COLLECTION = "Archetypes";
-	private String host;
-	private Integer port;
-	private Boolean authEnabled;
-	private String username;
-	private String password;
-	private String authDatabase;
-	private String databaseName;
+	
+	// Default values
+	private String host = "localhost";
+	private Integer port = 27017;
+	private Boolean authEnabled = false;
+	private String authDatabase = MONGODB_AUTHDATABASE;
+	private String username = "admin";
+	private String password = "myPassword";
+	private String databaseName = "MavenCrawler";
+	
 	private Logger logger;
 	private MongoClient mongo;
-
+	
+	private enum PropertyType {
+		HOST,
+		PORT,
+		AUTH_ENABLED,
+		AUTHDATABASE,
+		USERNAME,
+		PASSWORD,
+		MAINDATABASE
+	}
 
 	// Disable default constructor
 	private MongoDBPersister() {}
@@ -63,6 +76,20 @@ public class MongoDBPersister {
 	public static MongoDBPersister newInstance(Logger aLogger) {
 		MongoDBPersister persister = new MongoDBPersister();
 		persister.logger = aLogger;
+		
+		return persister;
+	}
+	
+	public static MongoDBPersister newInstance(Logger aLogger, Properties properties) {
+		MongoDBPersister persister = new MongoDBPersister();
+		persister.logger = aLogger;
+		persister.host = properties.getProperty(PropertyType.HOST.name());
+		persister.port = Integer.valueOf(properties.getProperty(PropertyType.PORT.name()));
+		persister.authEnabled = Boolean.valueOf(properties.getProperty(PropertyType.AUTH_ENABLED.name()));
+		persister.authDatabase = properties.getProperty(PropertyType.AUTHDATABASE.name());
+		persister.username = properties.getProperty(PropertyType.USERNAME.name());
+		persister.password = properties.getProperty(PropertyType.PASSWORD.name());
+		persister.databaseName = properties.getProperty(PropertyType.MAINDATABASE.name());
 		
 		return persister;
 	}
@@ -91,6 +118,14 @@ public class MongoDBPersister {
 		this.authEnabled = authEnabled;
 	}
 
+	public String getAuthDatabase() {
+		return (authDatabase == null) ? MONGODB_AUTHDATABASE : authDatabase;
+	}
+
+	public void setAuthDatabase(String authDatabase) {
+		this.authDatabase = authDatabase;
+	}
+
 	public String getUsername() {
 		return username;
 	}
@@ -105,14 +140,6 @@ public class MongoDBPersister {
 
 	public void setPassword(String password) {
 		this.password = password;
-	}
-
-	public String getAuthDatabase() {
-		return (authDatabase == null) ? MONGODB_AUTHDATABASE : authDatabase;
-	}
-
-	public void setAuthDatabase(String authDatabase) {
-		this.authDatabase = authDatabase;
 	}
 
 	public String getDatabaseName() {
