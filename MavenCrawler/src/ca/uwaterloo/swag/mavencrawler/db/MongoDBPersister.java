@@ -20,6 +20,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOneModel;
@@ -244,8 +245,14 @@ public class MongoDBPersister {
 					updateOptions));
 		}
 
+		logger.log(Level.INFO, "Saving " + upsertRequests.size() + " upserts to database...");
+		
 		MongoCollection<Archetype> collection = mongo.getDatabase(getDatabaseName()).getCollection(ARCHETYPE_COLLECTION, Archetype.class);
-		collection.bulkWrite(upsertRequests);
+		BulkWriteResult result = collection.bulkWrite(upsertRequests);
+
+		logger.log(Level.INFO, "Matched: " + result.getMatchedCount() + 
+				". Inserted: " + result.getInsertedCount() +
+				". Modified:" + result.getModifiedCount() + ".");
 	}
 	
 }

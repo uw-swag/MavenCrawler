@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -43,6 +44,7 @@ public class Crawler {
 	
 	public void crawlMavenURLs(List<String> mavenURLS) {
 		for (String url : mavenURLS) {
+			logger.log(Level.INFO, "Crawling " + url + "...");
 			crawlMavenRoot(url);
 		}
 	}
@@ -65,8 +67,10 @@ public class Crawler {
 		try {
 			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 			ArchetypeCatalogHandler handler = new ArchetypeCatalogHandler();
+			logger.log(Level.INFO, "Parsing archetype-catalog.xml...");
 			parser.parse(stream, handler);
-			
+			logger.log(Level.INFO, "Parsed " + handler.getArchetypes().size() + " archetypes.");
+
 			persister.upsertArchetypes(handler.getArchetypes());
 		} 
 		catch (ParserConfigurationException | SAXException | IOException e) {
