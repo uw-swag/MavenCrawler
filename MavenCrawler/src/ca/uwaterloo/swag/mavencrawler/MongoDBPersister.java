@@ -25,6 +25,8 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 
+import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
+
 public class MongoDBPersister {
 
 	/**
@@ -162,7 +164,7 @@ public class MongoDBPersister {
 			Document ping = mongo.getDatabase(getDatabaseName()).runCommand(new BsonDocument("ping", new BsonInt32(1)));
 			return ping.get("ok").equals(1.0);
 		} catch (Exception e) {
-			logError(e, "Could not connect to Mongo Database " + getDatabaseName());
+			LoggerHelper.logError(logger, e, "Could not connect to Mongo Database " + getDatabaseName());
 			return false;
 		}
 	}
@@ -243,16 +245,6 @@ public class MongoDBPersister {
 
 		MongoCollection<Archetype> collection = mongo.getDatabase(getDatabaseName()).getCollection(ARCHETYPE_COLLECTION, Archetype.class);
 		collection.bulkWrite(upsertRequests);
-	}
-
-	// Helpers
-	private void logError(Exception e, String message) {
-		e.printStackTrace();
-		String theError = message;
-		if (e.getStackTrace().length>=1){
-			theError += "\n" + e.getStackTrace()[0].toString();
-		}
-		logger.log(Level.SEVERE, theError);
 	}
 	
 }

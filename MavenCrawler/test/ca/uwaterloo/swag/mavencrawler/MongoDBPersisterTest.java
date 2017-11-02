@@ -33,7 +33,6 @@ import de.flapdoodle.embed.process.runtime.Network;
 
 public class MongoDBPersisterTest {
 
-
 	/**
 	 * please store Starter or RuntimeConfig in a static final field
 	 * if you want to use artifact store caching (or else disable caching)
