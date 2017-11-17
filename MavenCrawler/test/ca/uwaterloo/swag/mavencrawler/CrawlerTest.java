@@ -2,6 +2,8 @@ package ca.uwaterloo.swag.mavencrawler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.bson.Document;
@@ -89,14 +91,19 @@ public class CrawlerTest {
 		
 		// Given
         Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), persister);
+        String repoURL = "RepoURL";
 		
 		// When
-        crawler.crawlMavenArchetypeXMLInputStream(this.getClass().getResourceAsStream("archetype-catalog-example.xml"));
+        crawler.crawlMavenArchetypeXMLInputStream(this.getClass().getResourceAsStream("archetype-catalog-example.xml"), repoURL);
 		
         // Then
 		MongoDatabase db = _mongo.getDatabase("TestDatabase");
 		MongoCollection<Document> collection = db.getCollection("Archetypes");
-		assertEquals(2, collection.count());
+		List<Document> documents = collection.find().into(new ArrayList<Document>());
+
+		assertEquals(2, documents.size());
+		assertEquals("http://central.maven.org", documents.get(0).get("repository"));
+		assertEquals(repoURL, documents.get(1).get("repository"));
 	}
 	
 	/**

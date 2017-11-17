@@ -147,7 +147,6 @@ public class MongoDBPersisterTest {
 		// Then
 		assertFalse(persister.isConnected());
 	}
-
 	
 	@Test
 	public void testIndexesCreation() {
@@ -157,6 +156,9 @@ public class MongoDBPersisterTest {
 				"Archetypes"
 				);
 		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+		
+		List<String> dbCollections = db.listCollectionNames().into(new ArrayList<String>());
+		assertEquals(0, dbCollections.size());
 		
 		for (String collectionName : collectionNames) {
 			MongoCollection<Document> collection = db.getCollection(collectionName);
@@ -168,6 +170,8 @@ public class MongoDBPersisterTest {
 		assertTrue(persister.connect());
 
 		// Then
+		dbCollections = db.listCollectionNames().into(new ArrayList<String>());
+		assertEquals(collectionNames, dbCollections);
 		for (String collectionName : collectionNames) {
 			MongoCollection<Document> collection = db.getCollection(collectionName);
 			List<Document> indexes = collection.listIndexes().into(new ArrayList<Document>());

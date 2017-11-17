@@ -55,12 +55,14 @@ public class ArchetypeCatalogHandlerTest {
 		assertEquals("am.ik.archetype", archetype.getGroupId());
 		assertEquals("maven-reactjs-blank-archetype", archetype.getArtifactId());
 		assertEquals("1.0.0", archetype.getVersion());
+		assertEquals("http://central.maven.org", archetype.getRepository());
 		assertEquals("Blank Project for React.js", archetype.getDescription());
 		
 		archetype = handler.getArchetypes().get(1);
 		assertEquals("us.fatehi", archetype.getGroupId());
 		assertEquals("schemacrawler-archetype-plugin-lint", archetype.getArtifactId());
 		assertEquals("11.02.01", archetype.getVersion());
+		assertNull(archetype.getRepository());
 		assertNull(archetype.getDescription());
 	}
 

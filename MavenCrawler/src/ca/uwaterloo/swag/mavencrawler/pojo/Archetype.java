@@ -1,7 +1,6 @@
 package ca.uwaterloo.swag.mavencrawler.pojo;
 
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 
 public class Archetype {
@@ -9,6 +8,7 @@ public class Archetype {
 	private String groupId;
 	private String artifactId;
 	private String version;
+	private String repository;
 	private String description;
 	
 	public String getGroupId() {
@@ -29,6 +29,12 @@ public class Archetype {
 	public void setVersion(String version) {
 		this.version = version;
 	}
+	public String getRepository() {
+		return repository;
+	}
+	public void setRepository(String repository) {
+		this.repository = repository;
+	}
 	public String getDescription() {
 		return description;
 	}
@@ -42,6 +48,7 @@ public class Archetype {
 		result = prime * result + ((artifactId == null) ? 0 : artifactId.hashCode());
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
+		result = prime * result + ((repository == null) ? 0 : repository.hashCode());
 		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
@@ -69,6 +76,11 @@ public class Archetype {
 				return false;
 		} else if (!groupId.equals(other.groupId))
 			return false;
+		if (repository == null) {
+			if (other.repository != null)
+				return false;
+		} else if (!repository.equals(other.repository))
+			return false;
 		if (version == null) {
 			if (other.version != null)
 				return false;
@@ -78,8 +90,8 @@ public class Archetype {
 	}
 	@Override
 	public String toString() {
-		return "Archetype [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version
-				+ ", description=" + description + "]";
+		return "Archetype [groupId=" + groupId + ", artifactId=" + artifactId + ", version=" + version + ", repository="
+				+ repository + ", description=" + description + "]";
 	}
 	public static void checkIndexesInCollection(MongoCollection<Archetype> collection) {
 		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"));

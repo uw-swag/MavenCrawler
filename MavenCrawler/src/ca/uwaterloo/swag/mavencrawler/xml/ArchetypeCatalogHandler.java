@@ -21,6 +21,7 @@ public class ArchetypeCatalogHandler extends DefaultHandler {
 		GROUPID,
 		ARTIFACTID,
 		VERSION,
+		REPOSITORY,
 		DESCRIPTION,
 		NONE
 	}
@@ -74,6 +75,9 @@ public class ArchetypeCatalogHandler extends DefaultHandler {
 			break;
 		case VERSION:
 			currentArchetype.setVersion(value);
+			break;
+		case REPOSITORY:
+			currentArchetype.setRepository(value);
 			break;
 		case DESCRIPTION:
 			currentArchetype.setDescription(value);

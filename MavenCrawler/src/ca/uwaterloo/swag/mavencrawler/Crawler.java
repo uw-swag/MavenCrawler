@@ -53,7 +53,7 @@ public class Crawler {
 		
 		try {
 			URL url = new URL(mavenRootURL + "/archetype-catalog.xml");
-			crawlMavenArchetypeXMLInputStream(url.openStream());
+			crawlMavenArchetypeXMLInputStream(url.openStream(), mavenRootURL);
 		} 
 		catch (MalformedURLException e) {
 			LoggerHelper.logError(logger, e, "Bad URL: " + mavenRootURL);
@@ -62,7 +62,7 @@ public class Crawler {
 		}
 	}
 	
-	protected void crawlMavenArchetypeXMLInputStream(InputStream stream) {
+	protected void crawlMavenArchetypeXMLInputStream(InputStream stream, String repositoryURL) {
 
 		try {
 			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
@@ -71,6 +71,12 @@ public class Crawler {
 			parser.parse(stream, handler);
 			logger.log(Level.INFO, "Parsed " + handler.getArchetypes().size() + " archetypes.");
 
+			// Set repository URL to default, if null
+			handler.getArchetypes().forEach(a -> {
+				if(a.getRepository() == null) 
+					a.setRepository(repositoryURL);
+				});
+			
 			persister.upsertArchetypes(handler.getArchetypes());
 		} 
 		catch (ParserConfigurationException | SAXException | IOException e) {

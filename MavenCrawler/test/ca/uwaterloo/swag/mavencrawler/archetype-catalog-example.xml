@@ -4,6 +4,7 @@
 			<groupId>am.ik.archetype</groupId>
 			<artifactId>maven-reactjs-blank-archetype</artifactId>
 			<version>1.0.0</version>
+      		<repository>http://central.maven.org</repository>
 			<description>Blank Project for React.js</description>
 		</archetype>
 		<archetype>
