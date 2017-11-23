@@ -17,7 +17,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
@@ -39,7 +38,6 @@ public class ArchetypeTest {
 	private static final MongodStarter starter = MongodStarter.getDefaultInstance();
 	private MongodExecutable _mongodExe;
 	private MongodProcess _mongod;
-	private MongoClient _mongo;
 	
 	private MongoDBHandler handler;
 
@@ -64,8 +62,6 @@ public class ArchetypeTest {
 		handler.setPort(12345);
 		handler.setAuthEnabled(false);
 		handler.setDatabaseName("TestDatabase");
-		
-		_mongo = new MongoClient("localhost", 12345);
 	}
 
 	@After
@@ -78,7 +74,7 @@ public class ArchetypeTest {
 	public void testIndexesCreation() throws UnknownHostException, IOException {
 		
 		// Given
-		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+		MongoDatabase db = handler.getMongoDatabase();
 		MongoCollection<Archetype> collection = db.getCollection("Archetypes", Archetype.class);
 		
 		// When
@@ -97,7 +93,6 @@ public class ArchetypeTest {
 		assertNotNull(indexKey.get("version"));
 	}
 	
-
 	@Test
 	public void testInsertArchetypes() {
 

@@ -1,8 +1,11 @@
 package ca.uwaterloo.swag.mavencrawler;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -90,6 +93,7 @@ public class CrawlerTest {
 	public void testCrawlXMLInputStream() {
 		
 		// Given
+		Date testStart = new Date();
         Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), persister);
         String repoURL = "RepoURL";
 		
@@ -98,12 +102,16 @@ public class CrawlerTest {
 		
         // Then
 		MongoDatabase db = _mongo.getDatabase("TestDatabase");
-		MongoCollection<Document> collection = db.getCollection("Archetypes");
-		List<Document> documents = collection.find().into(new ArrayList<Document>());
+		Document repository = db.getCollection("Repositories").find().first();
+		List<Document> archetypes = db.getCollection("Archetypes").find().into(new ArrayList<Document>());
 
-		assertEquals(2, documents.size());
-		assertEquals("http://central.maven.org", documents.get(0).get("repository"));
-		assertEquals(repoURL, documents.get(1).get("repository"));
+		assertNotNull(repository);
+		assertEquals("RepoURL", repository.get("url"));
+		Date lastChecked = repository.getDate("lastChecked");
+		assertTrue(testStart.before(lastChecked) || testStart.equals(lastChecked));
+		assertEquals(2, archetypes.size());
+		assertEquals("http://central.maven.org", archetypes.get(0).get("repository"));
+		assertEquals(repoURL, archetypes.get(1).get("repository"));
 	}
 	
 	/**

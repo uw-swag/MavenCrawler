@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,6 +18,7 @@ import org.xml.sax.SAXException;
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.pojo.Repository;
 import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
 
 public class Crawler {
@@ -79,6 +81,7 @@ public class Crawler {
 				});
 			
 			Archetype.upsertInMongo(archetypeHandler.getArchetypes(), mongoHandler.getMongoDatabase(), logger);
+			Repository.setLastCheckedDateForURLInMongo(repositoryURL, mongoHandler.getMongoDatabase(), new Date());
 		} 
 		catch (ParserConfigurationException | SAXException | IOException e) {
 			LoggerHelper.logError(logger, e, "Error parsing archetype-catalog.xml.");
