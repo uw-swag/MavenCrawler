@@ -11,6 +11,12 @@ public class LoggerHelper {
 		if (e.getStackTrace().length>=1){
 			theError += "\n" + e.getStackTrace()[0].toString();
 		}
-		logger.log(Level.SEVERE, theError);
+		LoggerHelper.log(logger, Level.SEVERE, theError);
+	}
+
+	public static void log(Logger logger, Level level, String message) {
+		if (logger != null) {
+			logger.log(level, message);
+		}
 	}
 }

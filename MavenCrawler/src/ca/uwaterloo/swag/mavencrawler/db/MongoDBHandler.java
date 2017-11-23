@@ -1,8 +1,5 @@
 package ca.uwaterloo.swag.mavencrawler.db;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -20,16 +17,12 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
-import com.mongodb.bulk.BulkWriteResult;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.UpdateOptions;
 
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
 
-public class MongoDBPersister {
+public class MongoDBHandler {
 
 	/**
 	 * MongoDB reference guides
@@ -79,17 +72,17 @@ public class MongoDBPersister {
 	}
 
 	// Disable default constructor
-	private MongoDBPersister() {}
+	private MongoDBHandler() {}
 
-	public static MongoDBPersister newInstance(Logger aLogger) {
-		MongoDBPersister persister = new MongoDBPersister();
+	public static MongoDBHandler newInstance(Logger aLogger) {
+		MongoDBHandler persister = new MongoDBHandler();
 		persister.logger = aLogger;
 		
 		return persister;
 	}
 	
-	public static MongoDBPersister newInstance(Logger aLogger, Properties properties) {
-		MongoDBPersister persister = new MongoDBPersister();
+	public static MongoDBHandler newInstance(Logger aLogger, Properties properties) {
+		MongoDBHandler persister = new MongoDBHandler();
 		persister.logger = aLogger;
 		persister.host = properties.getProperty(PropertyType.HOST.name());
 		persister.port = Integer.valueOf(properties.getProperty(PropertyType.PORT.name()));
@@ -193,6 +186,14 @@ public class MongoDBPersister {
 		}
 	}
 
+	/**
+	 * Connects and return the database.
+	 * @return the database if connected correctly, otherwise returns null.
+	 */
+	public MongoDatabase getMongoDatabase() {
+		return connect() ? mongo.getDatabase(getDatabaseName()) : null;
+	}
+
 	public boolean connect() {
 		
 		// Don't connect again, if already connected
@@ -255,32 +256,6 @@ public class MongoDBPersister {
 		}
 		
 		return success;
-	}
-
-	public void upsertArchetypes(List<Archetype> archetypesList) {
-		
-		if (!connect()) return;
-		
-		List<UpdateOneModel<Archetype>> upsertRequests = new ArrayList<UpdateOneModel<Archetype>>(archetypesList.size());
-		UpdateOptions updateOptions = new UpdateOptions().upsert(true);
-		
-		for (Archetype archetype : archetypesList) {
-			upsertRequests.add(new UpdateOneModel<Archetype>(
-					and(eq("groupId", archetype.getGroupId()), 
-						eq("artifactId", archetype.getArtifactId()),
-						eq("version", archetype.getVersion())), 
-					new Document("$set", archetype), 
-					updateOptions));
-		}
-
-		logger.log(Level.INFO, "Saving " + upsertRequests.size() + " upserts to database...");
-		
-		MongoCollection<Archetype> collection = mongo.getDatabase(getDatabaseName()).getCollection(ARCHETYPE_COLLECTION, Archetype.class);
-		BulkWriteResult result = collection.bulkWrite(upsertRequests);
-
-		logger.log(Level.INFO, "Matched: " + result.getMatchedCount() + 
-				". Inserted: " + result.getInsertedCount() +
-				". Modified:" + result.getModifiedCount() + ".");
 	}
 	
 }

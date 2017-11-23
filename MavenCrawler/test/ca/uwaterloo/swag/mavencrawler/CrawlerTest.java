@@ -17,7 +17,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
-import ca.uwaterloo.swag.mavencrawler.db.MongoDBPersister;
+import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -37,7 +37,7 @@ public class CrawlerTest {
 	private MongodProcess _mongod;
 	private MongoClient _mongo;
 	
-	private MongoDBPersister persister;
+	private MongoDBHandler persister;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -56,7 +56,7 @@ public class CrawlerTest {
 				.build());
 			_mongod = _mongodExe.start();
 			
-			persister = MongoDBPersister.newInstance(Logger.getLogger(this.getClass().getName()));
+			persister = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
 			persister.setHost("localhost");
 			persister.setPort(12345);
 			persister.setAuthEnabled(false);
@@ -76,7 +76,7 @@ public class CrawlerTest {
 		
 		// Given
 		Logger logger = Logger.getLogger(this.getClass().getName());
-		MongoDBPersister persister = MongoDBPersister.newInstance(logger);
+		MongoDBHandler persister = MongoDBHandler.newInstance(logger);
 		
 		// When
 		Crawler crawler = new Crawler(logger, persister);

@@ -14,19 +14,20 @@ import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.SAXException;
 
-import ca.uwaterloo.swag.mavencrawler.db.MongoDBPersister;
+import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
+import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
 import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
 
 public class Crawler {
 	
 	private Logger logger;
-	private MongoDBPersister persister;
+	private MongoDBHandler mongoHandler;
 
-	public Crawler(Logger logger, MongoDBPersister persister) {
+	public Crawler(Logger logger, MongoDBHandler handler) {
 		super();
 		this.logger = logger;
-		this.persister = persister;
+		this.mongoHandler = handler;
 	}
 
 	public Logger getLogger() {
@@ -35,11 +36,11 @@ public class Crawler {
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
-	public MongoDBPersister getPersister() {
-		return persister;
+	public MongoDBHandler getPersister() {
+		return mongoHandler;
 	}
-	public void setPersister(MongoDBPersister persister) {
-		this.persister = persister;
+	public void setPersister(MongoDBHandler persister) {
+		this.mongoHandler = persister;
 	}
 	
 	public void crawlMavenURLs(List<String> mavenURLS) {
@@ -66,18 +67,18 @@ public class Crawler {
 
 		try {
 			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
-			ArchetypeCatalogHandler handler = new ArchetypeCatalogHandler();
+			ArchetypeCatalogHandler archetypeHandler = new ArchetypeCatalogHandler();
 			logger.log(Level.INFO, "Parsing archetype-catalog.xml...");
-			parser.parse(stream, handler);
-			logger.log(Level.INFO, "Parsed " + handler.getArchetypes().size() + " archetypes.");
+			parser.parse(stream, archetypeHandler);
+			logger.log(Level.INFO, "Parsed " + archetypeHandler.getArchetypes().size() + " archetypes.");
 
 			// Set repository URL to default, if null
-			handler.getArchetypes().forEach(a -> {
+			archetypeHandler.getArchetypes().forEach(a -> {
 				if(a.getRepository() == null) 
 					a.setRepository(repositoryURL);
 				});
 			
-			persister.upsertArchetypes(handler.getArchetypes());
+			Archetype.upsertInMongo(archetypeHandler.getArchetypes(), mongoHandler.getMongoDatabase(), logger);
 		} 
 		catch (ParserConfigurationException | SAXException | IOException e) {
 			LoggerHelper.logError(logger, e, "Error parsing archetype-catalog.xml.");

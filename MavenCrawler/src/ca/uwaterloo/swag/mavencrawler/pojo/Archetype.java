@@ -1,9 +1,27 @@
 package ca.uwaterloo.swag.mavencrawler.pojo;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.bson.Document;
+
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.UpdateOptions;
+
+import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 
 public class Archetype {
+	
+	private static final String ARCHETYPE_COLLECTION = "Archetypes";
 	
 	private String groupId;
 	private String artifactId;
@@ -95,6 +113,31 @@ public class Archetype {
 	}
 	public static void checkIndexesInCollection(MongoCollection<Archetype> collection) {
 		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"));
+	}
+	
+	public static void upsertInMongo(List<Archetype> archetypesList, MongoDatabase mongoDatabase, Logger logger) {
+		
+		List<UpdateOneModel<Archetype>> upsertRequests = new ArrayList<UpdateOneModel<Archetype>>(archetypesList.size());
+		UpdateOptions updateOptions = new UpdateOptions().upsert(true);
+		
+		for (Archetype archetype : archetypesList) {
+			upsertRequests.add(new UpdateOneModel<Archetype>(
+					and(eq("groupId", archetype.getGroupId()), 
+						eq("artifactId", archetype.getArtifactId()),
+						eq("version", archetype.getVersion())), 
+					new Document("$set", archetype), 
+					updateOptions));
+		}
+
+		LoggerHelper.log(logger, Level.INFO, "Saving " + upsertRequests.size() + " upserts to database...");
+		
+		MongoCollection<Archetype> collection = mongoDatabase.getCollection(ARCHETYPE_COLLECTION, Archetype.class);
+		BulkWriteResult result = collection.bulkWrite(upsertRequests);
+
+		LoggerHelper.log(logger, Level.INFO, "Matched: " + result.getMatchedCount() + 
+				". Inserted: " + result.getInsertedCount() +
+				". Modified:" + result.getModifiedCount() + ".");
+		
 	}
 
 }

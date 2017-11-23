@@ -7,7 +7,7 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import ca.uwaterloo.swag.mavencrawler.db.MongoDBPersister;
+import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.helpers.StringHelper;
 
@@ -33,7 +33,7 @@ public class MainCrawlerHandler {
 		
 		List<String> mavenURLs = StringHelper.getStringsFromFile(urlsFile.getAbsolutePath());
 		logger.log(Level.INFO, "Crawling " + mavenURLs.size() + " maven URLs.");
-		MongoDBPersister persister = MongoDBPersister.newInstance(logger, properties);
+		MongoDBHandler persister = MongoDBHandler.newInstance(logger, properties);
 		Crawler crawler = new Crawler(logger, persister);
 		crawler.crawlMavenURLs(mavenURLs);
 	}

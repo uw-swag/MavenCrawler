@@ -23,8 +23,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
-import ca.uwaterloo.swag.mavencrawler.db.MongoDBPersister;
-import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -33,7 +31,7 @@ import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
 
-public class MongoDBPersisterTest {
+public class MongoDBHandlerTest {
 
 	/**
 	 * please store Starter or RuntimeConfig in a static final field
@@ -44,7 +42,7 @@ public class MongoDBPersisterTest {
 	private MongodProcess _mongod;
 	private MongoClient _mongo;
 	
-	private MongoDBPersister persister;
+	private MongoDBHandler handler;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -63,11 +61,11 @@ public class MongoDBPersisterTest {
 			.build());
 		_mongod = _mongodExe.start();
 		
-		persister = MongoDBPersister.newInstance(Logger.getLogger(this.getClass().getName()));
-		persister.setHost("localhost");
-		persister.setPort(12345);
-		persister.setAuthEnabled(false);
-		persister.setDatabaseName("TestDatabase");
+		handler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
+		handler.setHost("localhost");
+		handler.setPort(12345);
+		handler.setAuthEnabled(false);
+		handler.setDatabaseName("TestDatabase");
 
 		_mongo = new MongoClient("localhost", 12345);
 	}
@@ -85,7 +83,7 @@ public class MongoDBPersisterTest {
 		Logger aLogger = Logger.getLogger(this.getClass().getName());
 		
 		// When
-		MongoDBPersister persister = MongoDBPersister.newInstance(aLogger);
+		MongoDBHandler persister = MongoDBHandler.newInstance(aLogger);
 		
 		// Then
 		assertNotNull(persister);
@@ -107,7 +105,7 @@ public class MongoDBPersisterTest {
 		properties.load(this.getClass().getResourceAsStream("../database-example.conf"));
 		
 		// When
-		MongoDBPersister persister = MongoDBPersister.newInstance(aLogger, properties);
+		MongoDBHandler persister = MongoDBHandler.newInstance(aLogger, properties);
 		
 		// Then
 		assertNotNull(persister);
@@ -129,23 +127,37 @@ public class MongoDBPersisterTest {
 		// initial parameters
 		
 		// When
-		assertTrue(persister.connect());
+		assertTrue(handler.connect());
 		
 		// Then
-		assertTrue(persister.isConnected());
+		assertTrue(handler.isConnected());
 	}
 
 	@Test
 	public void testDisconnect() {
 
 		// Given
-		assertTrue(persister.connect());
+		assertTrue(handler.connect());
 		
 		// When
-		assertTrue(persister.disconnect());
+		assertTrue(handler.disconnect());
 		
 		// Then
-		assertFalse(persister.isConnected());
+		assertFalse(handler.isConnected());
+	}
+	
+	@Test
+	public void testMongoDatabaseShouldConnect() {
+		
+		// Given
+		assertFalse(handler.isConnected());
+		
+		// When
+		MongoDatabase mongoDatabase = handler.getMongoDatabase();
+		
+		// Then
+		assertTrue(handler.isConnected());
+		assertNotNull(mongoDatabase);
 	}
 	
 	@Test
@@ -167,7 +179,7 @@ public class MongoDBPersisterTest {
 		}
 		
 		// When
-		assertTrue(persister.connect());
+		assertTrue(handler.connect());
 
 		// Then
 		dbCollections = db.listCollectionNames().into(new ArrayList<String>());
@@ -177,63 +189,6 @@ public class MongoDBPersisterTest {
 			List<Document> indexes = collection.listIndexes().into(new ArrayList<Document>());
 			assertTrue(indexes.size() > 0);
 		}
-	}
-	
-	@Test
-	public void testInsertArchetypes() {
-
-		// Given
-		Archetype archetype1 = new Archetype();
-		Archetype archetype2 = new Archetype();
-		archetype1.setGroupId("group");
-		archetype2.setGroupId("group");
-		archetype1.setArtifactId("artifact");
-		archetype2.setArtifactId("artifact");
-		archetype1.setVersion("1");
-		archetype2.setVersion("2");
-		
-		// When
-		persister.upsertArchetypes(Arrays.asList(archetype1, archetype2));
-		
-		// Then
-		MongoDatabase db = _mongo.getDatabase("TestDatabase");
-		MongoCollection<Document> collection = db.getCollection("Archetypes");
-		ArrayList<Document> documents = collection.find().into(new ArrayList<Document>());
-		
-		assertNotNull(documents);
-		assertEquals(2, documents.size());
-		assertEquals("1", documents.get(0).get("version"));
-		assertEquals("2", documents.get(1).get("version"));
-	}
-	
-	@Test
-	public void testUpdateArchetypes() {
-
-		// Given
-		Archetype archetype = new Archetype();
-		archetype.setGroupId("group1");
-		archetype.setArtifactId("archetype1");
-		archetype.setVersion("1");
-		archetype.setDescription("description1");
-		persister.upsertArchetypes(Arrays.asList(archetype));
-
-		MongoDatabase db = _mongo.getDatabase("TestDatabase");
-		MongoCollection<Document> collection = db.getCollection("Archetypes");
-		assertEquals("1", collection.find().first().get("version"));
-		
-		// When
-		archetype.setDescription("description2");
-		persister.upsertArchetypes(Arrays.asList(archetype));
-		
-		// Then
-		ArrayList<Document> documents = collection.find().into(new ArrayList<Document>());
-		
-		assertNotNull(documents);
-		assertEquals(1, documents.size());
-		assertEquals("archetype1", documents.get(0).get("artifactId"));
-		assertEquals("group1", documents.get(0).get("groupId"));
-		assertEquals("1", documents.get(0).get("version"));
-		assertEquals("description2", documents.get(0).get("description"));
 	}
 
 }
