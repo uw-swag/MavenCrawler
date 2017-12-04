@@ -165,7 +165,8 @@ public class MongoDBHandlerTest {
 
 		// Given
 		List<String> collectionNames = Arrays.asList(
-				"Archetypes"
+				"Archetypes",
+				"Metadata"
 				);
 		MongoDatabase db = _mongo.getDatabase("TestDatabase");
 		

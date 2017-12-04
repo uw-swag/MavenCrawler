@@ -81,6 +81,7 @@ public class Repository {
 		
 		return repo.getLastChecked();
 	}
+	
 	public static void setLastCheckedDateForURLInMongo(String url, MongoDatabase db, Date date) {
 		
 		MongoCollection<Repository> collection = db.getCollection(REPOSITORY_COLLECTION, Repository.class);

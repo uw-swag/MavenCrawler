@@ -17,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
@@ -129,6 +130,11 @@ public class CrawlerTest {
 //		MongoDatabase db = _mongo.getDatabase("TestDatabase");
 //		MongoCollection<Document> collection = db.getCollection("Archetypes");
 //		System.out.println("Gotten archetypes: " + collection.count());
+//		
+//		ArrayList<String> docs = collection.distinct("artifactId", String.class).into(new ArrayList<String>());
+//		
+//		System.out.println("docs: " + docs.size());
+//		
 //		assertTrue(collection.count() > 0);
 //	}
 

@@ -1,10 +1,25 @@
 package ca.uwaterloo.swag.mavencrawler.pojo;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import org.bson.Document;
+
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.UpdateOptions;
 
 public class Metadata {
+
+	public static final String METADATA_COLLECTION = "Metadata";
 
 	private String groupId;
 	private String artifactId;
@@ -106,6 +121,41 @@ public class Metadata {
 	public String toString() {
 		return "Metadata [groupId=" + groupId + ", artifactId=" + artifactId + ", latest=" + latest + ", release="
 				+ release + ", versions=" + versions + ", lastUpdated=" + lastUpdated + "]";
+	}
+
+	public static void checkIndexesInCollection(MongoCollection<Metadata> collection) {
+		IndexOptions indexOptions = new IndexOptions().unique(true);
+		collection.createIndex(Indexes.ascending("groupId", "artifactId"), indexOptions);
+	}
+	
+	/**
+	 * If Metadata already exists for given groupId and artifactId, versions are appended distinctively.
+	 * @param metadata
+	 * @param mongoDatabase
+	 * @param logger
+	 */
+	public static void upsertInMongo(Metadata metadata, MongoDatabase mongoDatabase, Logger logger) {
+		
+		MongoCollection<Metadata> collection = mongoDatabase.getCollection(METADATA_COLLECTION, Metadata.class);
+		
+		Metadata oldMetadata = collection.find(
+				and(eq("groupId", metadata.getGroupId()), 
+					eq("artifactId", metadata.getArtifactId())))
+				.first();
+		
+		if (oldMetadata != null && oldMetadata.getVersions() != null) {
+			List<String> newVersions = new ArrayList<>(metadata.getVersions());
+			newVersions.addAll(oldMetadata.getVersions());
+			newVersions = newVersions.stream().distinct().collect(Collectors.toList());
+			newVersions.sort(String::compareTo);
+			metadata.setVersions(newVersions);
+		}
+		
+		collection.updateOne(
+				and(eq("groupId", metadata.getGroupId()), 
+					eq("artifactId", metadata.getArtifactId())), 
+				new Document("$set", metadata), 
+				new UpdateOptions().upsert(true));
 	}
 
 }

@@ -21,6 +21,7 @@ import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 
 public class MongoDBHandler {
 
@@ -43,7 +44,6 @@ public class MongoDBHandler {
 	 */
 	
 	private static final String MONGODB_AUTHDATABASE = "admin";
-	private static final String ARCHETYPE_COLLECTION = "Archetypes";
 	
 	// Default values
 	private String host = "localhost";
@@ -234,7 +234,8 @@ public class MongoDBHandler {
 
 	private void checkCollectionsIndexes() {
 		MongoDatabase mainDatabase = mongo.getDatabase(getDatabaseName());
-		Archetype.checkIndexesInCollection(mainDatabase.getCollection(ARCHETYPE_COLLECTION, Archetype.class));
+		Archetype.checkIndexesInCollection(mainDatabase.getCollection(Archetype.ARCHETYPE_COLLECTION, Archetype.class));
+		Metadata.checkIndexesInCollection(mainDatabase.getCollection(Metadata.METADATA_COLLECTION, Metadata.class));
 	}
 
 	public boolean disconnect() {

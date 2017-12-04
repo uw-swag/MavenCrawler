@@ -13,6 +13,7 @@ import org.bson.Document;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
@@ -21,7 +22,7 @@ import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 
 public class Archetype {
 	
-	private static final String ARCHETYPE_COLLECTION = "Archetypes";
+	public static final String ARCHETYPE_COLLECTION = "Archetypes";
 	
 	private String groupId;
 	private String artifactId;
@@ -112,7 +113,8 @@ public class Archetype {
 				+ repository + ", description=" + description + "]";
 	}
 	public static void checkIndexesInCollection(MongoCollection<Archetype> collection) {
-		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"));
+		IndexOptions indexOptions = new IndexOptions().unique(true);
+		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"), indexOptions);
 	}
 	
 	public static void upsertInMongo(List<Archetype> archetypesList, MongoDatabase mongoDatabase, Logger logger) {
