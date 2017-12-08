@@ -143,6 +143,17 @@ public class Metadata {
 					eq("artifactId", metadata.getArtifactId())))
 				.first();
 		
+		// Check if upserting new metadata
+		if (oldMetadata != null && oldMetadata.getLastUpdated() != null && metadata.getLastUpdated() == null) {
+			return;
+		}
+		else if (oldMetadata != null && 
+				 oldMetadata.getLastUpdated() != null && 
+				 metadata.getLastUpdated() != null && 
+				 oldMetadata.getLastUpdated().compareTo(metadata.getLastUpdated()) >= 0) {
+			return;
+		}
+		
 		if (oldMetadata != null && oldMetadata.getVersions() != null) {
 			List<String> newVersions = new ArrayList<>(metadata.getVersions());
 			newVersions.addAll(oldMetadata.getVersions());

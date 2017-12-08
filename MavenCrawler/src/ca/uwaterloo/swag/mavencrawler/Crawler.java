@@ -18,8 +18,10 @@ import org.xml.sax.SAXException;
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import ca.uwaterloo.swag.mavencrawler.pojo.Repository;
 import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
+import ca.uwaterloo.swag.mavencrawler.xml.MavenMetadataHandler;
 
 public class Crawler {
 	
@@ -48,8 +50,9 @@ public class Crawler {
 	public void crawlMavenURLs(List<String> mavenURLS) {
 		for (String url : mavenURLS) {
 			logger.log(Level.INFO, "Crawling " + url + "...");
-			crawlMavenRoot(url);
+//			crawlMavenRoot(url);
 		}
+		updateArchetypes();
 	}
 
 	public void crawlMavenRoot(String mavenRootURL) {
@@ -85,6 +88,36 @@ public class Crawler {
 		} 
 		catch (ParserConfigurationException | SAXException | IOException e) {
 			LoggerHelper.logError(logger, e, "Error parsing archetype-catalog.xml.");
+		}
+	}
+
+	public void updateMetadataForArchetype(Archetype archetype) {
+		
+		try {
+			MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
+			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+			
+			logger.log(Level.INFO, "Parsing archetype-catalog.xml...");
+			parser.parse(archetype.getMetadataURL().openStream(), metadataHandler);
+			logger.log(Level.INFO, "Parsed " + metadataHandler.getMetadata() + ".");
+			
+			Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoHandler.getMongoDatabase(), logger);
+			
+		} catch (MalformedURLException e) {
+			LoggerHelper.logError(logger, e, 
+					"Bad URL: " + archetype.getRepository() + "/" + 
+					 archetype.getGroupId() + "/" + 
+					 archetype.getArtifactId() + "/maven-metadata.xml");
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
+		}
+	}
+
+	public void updateArchetypes() {
+		List<Archetype> arquetypes = Archetype.findAllFromMongo(mongoHandler.getMongoDatabase());
+		
+		for (Archetype archetype : arquetypes) {
+			updateMetadataForArchetype(archetype);
 		}
 	}
 	

@@ -11,6 +11,7 @@ import org.bson.BsonInt32;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.Conventions;
 import org.bson.codecs.pojo.PojoCodecProvider;
 
 import com.mongodb.MongoClient;
@@ -209,7 +210,7 @@ public class MongoDBHandler {
 		
 		// Register classes
 		CodecRegistry pojoCodecRegistry = CodecRegistries.fromRegistries(MongoClient.getDefaultCodecRegistry(),
-				CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build()));
+				CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).conventions(Conventions.DEFAULT_CONVENTIONS).build()));
 		MongoClientOptions options = MongoClientOptions.builder()
 				.codecRegistry(pojoCodecRegistry)
 				.sslEnabled(sslEnabled)

@@ -10,7 +10,7 @@ import com.mongodb.client.MongoDatabase;
 
 public class Repository {
 	
-	private static final String REPOSITORY_COLLECTION = "Repositories";
+	public static final String REPOSITORY_COLLECTION = "Repositories";
 	
 	private String url;
 	private Date lastChecked;

@@ -1,10 +1,15 @@
 package ca.uwaterloo.swag.mavencrawler;
 
+import static ca.uwaterloo.swag.mavencrawler.pojo.Archetype.ARCHETYPE_COLLECTION;
+import static ca.uwaterloo.swag.mavencrawler.pojo.Metadata.METADATA_COLLECTION;
+import static ca.uwaterloo.swag.mavencrawler.pojo.Repository.REPOSITORY_COLLECTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
@@ -21,6 +26,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
+import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -40,7 +46,7 @@ public class CrawlerTest {
 	private MongodProcess _mongod;
 	private MongoClient _mongo;
 	
-	private MongoDBHandler persister;
+	private MongoDBHandler mongoHandler;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -59,11 +65,11 @@ public class CrawlerTest {
 				.build());
 			_mongod = _mongodExe.start();
 			
-			persister = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
-			persister.setHost("localhost");
-			persister.setPort(12345);
-			persister.setAuthEnabled(false);
-			persister.setDatabaseName("TestDatabase");
+			mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
+			mongoHandler.setHost("localhost");
+			mongoHandler.setPort(12345);
+			mongoHandler.setAuthEnabled(false);
+			mongoHandler.setDatabaseName("TestDatabase");
 
 			_mongo = new MongoClient("localhost", 12345);
 	}
@@ -94,7 +100,7 @@ public class CrawlerTest {
 		
 		// Given
 		Date testStart = new Date();
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), persister);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
         String repoURL = "RepoURL";
 		
 		// When
@@ -102,8 +108,8 @@ public class CrawlerTest {
 		
         // Then
 		MongoDatabase db = _mongo.getDatabase("TestDatabase");
-		Document repository = db.getCollection("Repositories").find().first();
-		List<Document> archetypes = db.getCollection("Archetypes").find().into(new ArrayList<Document>());
+		Document repository = db.getCollection(REPOSITORY_COLLECTION).find().first();
+		List<Document> archetypes = db.getCollection(ARCHETYPE_COLLECTION).find().into(new ArrayList<Document>());
 
 		assertNotNull(repository);
 		assertEquals("RepoURL", repository.get("url"));
@@ -138,4 +144,110 @@ public class CrawlerTest {
 //		assertTrue(collection.count() > 0);
 //	}
 
+	/**
+	 * Testing crawling metadata
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testCrawlMetadataWithSubGroups() {
+		
+		// Given
+		Archetype archetype = new Archetype();
+		archetype.setGroupId("am.ik.archetype");
+		archetype.setArtifactId("maven-reactjs-blank-archetype");
+		archetype.setRepository("http://central.maven.org/maven2/");
+		Archetype.upsertInMongo(Arrays.asList(archetype), mongoHandler.getMongoDatabase(), null);
+
+		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
+		assertEquals(1, db.getCollection(ARCHETYPE_COLLECTION).count());
+		assertEquals(0, metadataCollection.count());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
+		crawler.updateMetadataForArchetype(archetype);
+		
+		// Then
+		assertEquals(1, metadataCollection.count());
+		Document metadata = metadataCollection.find().first();
+		assertEquals("am.ik.archetype", metadata.get("groupId"));
+		assertEquals("maven-reactjs-blank-archetype", metadata.get("artifactId"));
+		assertEquals("1.0.0", metadata.get("latest"));
+		assertEquals("1.0.0", metadata.get("release"));
+		assertEquals(1, ((List<?>)metadata.get("versions")).size());
+		
+		Calendar cal = Calendar.getInstance();
+		cal.set(2015, Calendar.MARCH, 23, 16, 58, 46);
+		cal.set(Calendar.MILLISECOND, 0);
+		assertEquals(cal.getTime(), metadata.get("lastUpdated"));
+	}
+
+	/**
+	 * Testing crawling metadata
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testCrawlMetadata() {
+		
+		// Given
+		Archetype archetype = new Archetype();
+		archetype.setGroupId("args4j");
+		archetype.setArtifactId("args4j-tools");
+		archetype.setRepository("http://central.maven.org/maven2/");
+		Archetype.upsertInMongo(Arrays.asList(archetype), mongoHandler.getMongoDatabase(), null);
+
+		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
+		assertEquals(1, db.getCollection(ARCHETYPE_COLLECTION).count());
+		assertEquals(0, metadataCollection.count());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
+		crawler.updateMetadataForArchetype(archetype);
+		
+		// Then
+		assertEquals(1, metadataCollection.count());
+		Document metadata = metadataCollection.find().first();
+		assertEquals("args4j", metadata.get("groupId"));
+		assertEquals("args4j-tools", metadata.get("artifactId"));
+		assertEquals("2.33", metadata.get("latest"));
+		assertEquals("2.33", metadata.get("release"));
+		assertEquals(11, ((List<?>)metadata.get("versions")).size());
+		
+		Calendar cal = Calendar.getInstance();
+		cal.set(2016, Calendar.JANUARY, 31, 9, 2, 3);
+		cal.set(Calendar.MILLISECOND, 0);
+		assertEquals(cal.getTime(), metadata.get("lastUpdated"));
+	}
+
+	/**
+	 * Testing crawling metadata from archetypes in database
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testUpdateArchetypes() {
+		
+		// Given
+		Archetype archetype1 = new Archetype();
+		Archetype archetype2 = new Archetype();
+		archetype1.setGroupId("args4j");
+		archetype2.setGroupId("args4j");
+		archetype1.setRepository("http://central.maven.org/maven2/");
+		archetype2.setRepository("http://central.maven.org/maven2/");
+		archetype1.setArtifactId("args4j-tools");
+		archetype2.setArtifactId("args4j-site");
+		Archetype.upsertInMongo(Arrays.asList(archetype1, archetype2), mongoHandler.getMongoDatabase(), null);
+		
+		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
+		assertEquals(2, db.getCollection(ARCHETYPE_COLLECTION).count());
+		assertEquals(0, metadataCollection.count());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
+		crawler.updateArchetypes();
+		
+		// Then
+		assertEquals(2, metadataCollection.count());
+	}
 }

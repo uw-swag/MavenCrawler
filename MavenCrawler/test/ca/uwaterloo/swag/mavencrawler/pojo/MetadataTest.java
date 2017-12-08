@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -144,6 +145,63 @@ public class MetadataTest {
 		// Then
 		ArrayList<Document> documents = collection.find().into(new ArrayList<Document>());
 		
+		assertNotNull(documents);
+		assertEquals(1, documents.size());
+		assertEquals(Arrays.asList("1", "2", "3"), documents.get(0).get("versions"));
+	}
+	
+	@Test
+	public void testOlderMetadataShouldNotBeUpdated() {
+
+		// Given
+		Metadata metadata1 = new Metadata();
+		Metadata metadata2 = new Metadata();
+		metadata1.setGroupId("group");
+		metadata2.setGroupId("group");
+		metadata1.setArtifactId("artifact");
+		metadata2.setArtifactId("artifact");
+		metadata1.setVersions(Arrays.asList("1", "2"));
+		metadata2.setVersions(Arrays.asList("2", "3"));
+
+		Calendar cal = Calendar.getInstance();
+		cal.set(2017, 1, 1, 0, 0, 1);
+		metadata1.setLastUpdated(cal.getTime());
+
+		MongoDatabase db = handler.getMongoDatabase();
+		MongoCollection<Document> collection = db.getCollection("Metadata");
+		Metadata.upsertInMongo(metadata1, db, null);
+		assertEquals(1, collection.count());
+		
+		// When
+		metadata2.setLastUpdated(cal.getTime());
+		Metadata.upsertInMongo(metadata2, db, null);
+		
+		// Then
+		ArrayList<Document> documents = collection.find().into(new ArrayList<Document>());
+		assertNotNull(documents);
+		assertEquals(1, documents.size());
+		assertEquals(Arrays.asList("1", "2"), documents.get(0).get("versions"));
+		
+		// When
+		cal = Calendar.getInstance();
+		cal.set(2017, 1, 1, 0, 0, 0);
+		metadata2.setLastUpdated(cal.getTime());
+		Metadata.upsertInMongo(metadata2, db, null);
+
+		// Then
+		documents = collection.find().into(new ArrayList<Document>());
+		assertNotNull(documents);
+		assertEquals(1, documents.size());
+		assertEquals(Arrays.asList("1", "2"), documents.get(0).get("versions"));
+		
+		// When
+		cal = Calendar.getInstance();
+		cal.set(2017, 1, 1, 0, 0, 2);
+		metadata2.setLastUpdated(cal.getTime());
+		Metadata.upsertInMongo(metadata2, db, null);
+
+		// Then
+		documents = collection.find().into(new ArrayList<Document>());
 		assertNotNull(documents);
 		assertEquals(1, documents.size());
 		assertEquals(Arrays.asList("1", "2", "3"), documents.get(0).get("versions"));

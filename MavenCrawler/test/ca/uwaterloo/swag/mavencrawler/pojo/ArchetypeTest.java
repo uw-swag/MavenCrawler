@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -149,6 +151,54 @@ public class ArchetypeTest {
 		assertEquals("group1", documents.get(0).get("groupId"));
 		assertEquals("1", documents.get(0).get("version"));
 		assertEquals("description2", documents.get(0).get("description"));
+	}
+	
+	@Test
+	public void testGetArchetypes() {
+		
+		// Given
+		Archetype archetype1 = new Archetype();
+		Archetype archetype2 = new Archetype();
+		archetype1.setGroupId("group");
+		archetype2.setGroupId("group");
+		archetype1.setArtifactId("artifact");
+		archetype2.setArtifactId("artifact");
+		archetype1.setVersion("1");
+		archetype2.setVersion("2");
+
+		MongoDatabase db = handler.getMongoDatabase();
+		Archetype.upsertInMongo(Arrays.asList(archetype1, archetype2), db, null);
+		
+		// When
+		List<Archetype> arquetypes = Archetype.findAllFromMongo(db);
+		
+		// Then
+		assertEquals(2, arquetypes.size());
+	}
+	
+	@Test
+	public void testGetMetadataURL() throws MalformedURLException {
+		
+		// Given
+		Archetype archetype = new Archetype();
+		archetype.setGroupId("br.com.ingenieux");
+		archetype.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		archetype.setRepository("http://central.maven.org/maven2");
+		URL expected;
+		
+		// When
+		archetype.setRepository("http://central.maven.org/maven2");
+		expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/maven-metadata.xml");
+		
+		// Then
+		assertEquals(expected, archetype.getMetadataURL());
+
+		// When
+		archetype.setRepository("http://central.maven.org/maven2/");
+		expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/maven-metadata.xml");
+		
+		// Then
+		assertEquals(expected, archetype.getMetadataURL());
 	}
 
 }

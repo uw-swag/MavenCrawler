@@ -3,12 +3,17 @@ package ca.uwaterloo.swag.mavencrawler.pojo;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bson.Document;
+import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.MongoCollection;
@@ -29,6 +34,10 @@ public class Archetype {
 	private String version;
 	private String repository;
 	private String description;
+	
+
+	@BsonIgnore
+	private URL metadataURL;
 	
 	public String getGroupId() {
 		return groupId;
@@ -117,6 +126,25 @@ public class Archetype {
 		collection.createIndex(Indexes.ascending("groupId", "artifactId", "version"), indexOptions);
 	}
 	
+	public URL getMetadataURL() throws MalformedURLException {
+		
+		if (metadataURL == null ) {
+			
+			try {
+				String baseURL = (this.getRepository() + "/").replaceAll("(?<!(http:|https:))//", "/");
+				URI metadataURI = new URI(baseURL).resolve(
+								this.getGroupId().replaceAll("\\.", "/") + "/" + 
+								this.getArtifactId() + 
+								"/maven-metadata.xml");
+				metadataURL = metadataURI.toURL();
+			} catch (URISyntaxException e) {
+				throw new MalformedURLException(e.getMessage());
+			}
+		}
+		
+		return metadataURL;
+	}
+	
 	public static void upsertInMongo(List<Archetype> archetypesList, MongoDatabase mongoDatabase, Logger logger) {
 		
 		List<UpdateOneModel<Archetype>> upsertRequests = new ArrayList<UpdateOneModel<Archetype>>(archetypesList.size());
@@ -140,6 +168,11 @@ public class Archetype {
 				". Inserted: " + result.getInsertedCount() +
 				". Modified:" + result.getModifiedCount() + ".");
 		
+	}
+
+	public static List<Archetype> findAllFromMongo(MongoDatabase mongoDatabase) {
+		MongoCollection<Archetype> collection = mongoDatabase.getCollection(ARCHETYPE_COLLECTION, Archetype.class);
+		return collection.find().into(new ArrayList<Archetype>());
 	}
 
 }
