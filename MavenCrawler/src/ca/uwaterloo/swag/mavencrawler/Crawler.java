@@ -1,6 +1,7 @@
 package ca.uwaterloo.swag.mavencrawler;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,6 +66,7 @@ public class Crawler {
 			crawlMavenRoot(url);
 		}
 		updateArchetypes();
+		downloadLibraries();
 	}
 
 	public void crawlMavenRoot(String mavenRootURL) {
@@ -85,9 +87,10 @@ public class Crawler {
 		try {
 			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 			ArchetypeCatalogHandler archetypeHandler = new ArchetypeCatalogHandler();
-			logger.log(Level.INFO, "Parsing archetype-catalog.xml...");
+
+			LoggerHelper.log(logger, Level.INFO, "Parsing archetype-catalog.xml...");
 			parser.parse(stream, archetypeHandler);
-			logger.log(Level.INFO, "Parsed " + archetypeHandler.getArchetypes().size() + " archetypes.");
+			LoggerHelper.log(logger, Level.INFO, "Parsed " + archetypeHandler.getArchetypes().size() + " archetypes.");
 
 			// Set repository URL to default, if null
 			archetypeHandler.getArchetypes().forEach(a -> {
@@ -109,9 +112,9 @@ public class Crawler {
 			MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
 			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 			
-			logger.log(Level.INFO, "Parsing archetype-catalog.xml...");
+			LoggerHelper.log(logger, Level.INFO, "Parsing maven-metadata.xml...");
 			parser.parse(archetype.getMetadataURL().openStream(), metadataHandler);
-			logger.log(Level.INFO, "Parsed " + metadataHandler.getMetadata() + ".");
+			LoggerHelper.log(logger, Level.INFO, "Parsed " + metadataHandler.getMetadata() + ".");
 			
 			metadataHandler.getMetadata().setRepository(archetype.getRepository());
 			Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoHandler.getMongoDatabase(), logger);
@@ -146,19 +149,37 @@ public class Crawler {
 		}
 		
 		for (URL url : metadata.getLibrariesURLs()) {
-			
-			File downloadFile = new File(downloadFolder, getLibraryFileNameGroupIdAndURL(metadata.getGroupId(), url));
-			
-			if (!downloadFile.exists()) {
-				try {
-			        ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-					FileOutputStream fos = new FileOutputStream(downloadFile);
-			        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-			        fos.close();
-			        rbc.close();
-				} catch (IOException e) {
-					LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
+			LoggerHelper.log(logger, Level.INFO, "Downloading " + url);
+			downloadLibFromURL(metadata.getGroupId(), url);
+		}
+	}
+
+	private void downloadLibFromURL(String groupId, URL url) {
+		File downloadFile = new File(downloadFolder, getLibraryFileNameFromGroupIdAndURL(groupId, url));
+		
+		if (!downloadFile.exists()) {
+			try {
+		        ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+				FileOutputStream fos = new FileOutputStream(downloadFile);
+		        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+		        fos.close();
+		        rbc.close();
+			} 
+			catch (FileNotFoundException e) {
+				
+				// JAR not found, try AAR
+				if (url.getPath().endsWith("jar")) {
+					try {
+						URL newURL = new URL(url, url.getPath().substring(0, url.getPath().length()-3) + "aar");
+						downloadLibFromURL(groupId, newURL);
+					} catch (MalformedURLException e1) {
+						LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
+					}
 				}
+				
+			}
+			catch (IOException e) {
+				LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
 			}
 		}
 	}
@@ -173,7 +194,7 @@ public class Crawler {
 	
 	// Helpers
 	
-	private String getLibraryFileNameGroupIdAndURL(String groupId, URL url) {
+	private String getLibraryFileNameFromGroupIdAndURL(String groupId, URL url) {
 		String[] components = url.getPath().split("/");
 		return groupId + "." + components[components.length-1];
 	}

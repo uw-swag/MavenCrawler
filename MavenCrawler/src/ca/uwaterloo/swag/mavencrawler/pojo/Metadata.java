@@ -79,6 +79,7 @@ public class Metadata {
 	public void setLastUpdated(Date lastUpdated) {
 		this.lastUpdated = lastUpdated;
 	}
+	
 	public List<URL> getLibrariesURLs() {
 		
 		if (librariesURLs == null ) {

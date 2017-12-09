@@ -293,6 +293,39 @@ public class CrawlerTest {
 		assertTrue(lib2.delete());
 		assertTrue(downloadFolder.delete());
 	}
+
+	/**
+	 * Testing downloading AAR libraries
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testDownloadAARLibrariesFromMetadata() {
+		
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("ch.acra");
+		metadata.setArtifactId("acra");
+		metadata.setRepository("http://central.maven.org/maven2");
+		metadata.setVersions(Arrays.asList("4.9.2"));
+		
+		File downloadFolder = new File("tempDownload");
+		assertFalse(downloadFolder.exists());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
+		crawler.downloadLibrariesFromMetadata(metadata);
+		
+		// Then
+		assertTrue(downloadFolder.exists());
+		assertTrue(downloadFolder.isDirectory());
+		assertEquals(1, downloadFolder.list().length);
+		
+		File lib1 = new File(downloadFolder, "ch.acra.acra-4.9.2.aar");
+		assertTrue(lib1.exists());
+
+		assertTrue(lib1.delete());
+		assertTrue(downloadFolder.delete());
+	}
 	
 	@Test
 	public void testDownloadLibraries() {
