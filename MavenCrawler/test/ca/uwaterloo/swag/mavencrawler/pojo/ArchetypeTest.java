@@ -154,7 +154,7 @@ public class ArchetypeTest {
 	}
 	
 	@Test
-	public void testGetArchetypes() {
+	public void testFindAllArchetypes() {
 		
 		// Given
 		Archetype archetype1 = new Archetype();
@@ -184,18 +184,16 @@ public class ArchetypeTest {
 		archetype.setGroupId("br.com.ingenieux");
 		archetype.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
 		archetype.setRepository("http://central.maven.org/maven2");
-		URL expected;
+		URL expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/maven-metadata.xml");
 		
 		// When
 		archetype.setRepository("http://central.maven.org/maven2");
-		expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/maven-metadata.xml");
 		
 		// Then
 		assertEquals(expected, archetype.getMetadataURL());
 
 		// When
 		archetype.setRepository("http://central.maven.org/maven2/");
-		expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/maven-metadata.xml");
 		
 		// Then
 		assertEquals(expected, archetype.getMetadataURL());

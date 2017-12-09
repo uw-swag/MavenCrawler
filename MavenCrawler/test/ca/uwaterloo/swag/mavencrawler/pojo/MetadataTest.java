@@ -3,6 +3,8 @@ package ca.uwaterloo.swag.mavencrawler.pojo;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -205,6 +207,57 @@ public class MetadataTest {
 		assertNotNull(documents);
 		assertEquals(1, documents.size());
 		assertEquals(Arrays.asList("1", "2", "3"), documents.get(0).get("versions"));
+	}
+
+	@Test
+	public void testLibrariesURLs() throws MalformedURLException {
+		
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("br.com.ingenieux");
+		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		metadata.setVersions(Arrays.asList("1.5.0", "1.4.4"));
+		
+		List<URL> expected = Arrays.asList(
+				new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/1.5.0/elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar"),
+				new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/1.4.4/elasticbeanstalk-docker-dropwizard-webapp-archetype-1.4.4.jar"));
+		
+		// When
+		metadata.setRepository("http://central.maven.org/maven2");
+		
+		// Then
+		assertEquals(expected, metadata.getLibrariesURLs());
+
+		// When
+		metadata.setRepository("http://central.maven.org/maven2/");
+		
+		// Then
+		assertEquals(expected, metadata.getLibrariesURLs());
+	}
+	
+
+	@Test
+	public void testFindAllMetadata() {
+		
+		// Given
+		Metadata metadata1 = new Metadata();
+		Metadata metadata2 = new Metadata();
+		metadata1.setGroupId("group");
+		metadata2.setGroupId("group");
+		metadata1.setArtifactId("artifact1");
+		metadata2.setArtifactId("artifact2");
+		metadata1.setVersions(Arrays.asList("1"));
+		metadata2.setVersions(Arrays.asList("2"));
+
+		MongoDatabase db = handler.getMongoDatabase();
+		Metadata.upsertInMongo(metadata1, db, null);
+		Metadata.upsertInMongo(metadata2, db, null);
+		
+		// When
+		List<Metadata> metadataList = Metadata.findAllFromMongo(db);
+		
+		// Then
+		assertEquals(2, metadataList.size());
 	}
 
 }

@@ -4,9 +4,11 @@ import static ca.uwaterloo.swag.mavencrawler.pojo.Archetype.ARCHETYPE_COLLECTION
 import static ca.uwaterloo.swag.mavencrawler.pojo.Metadata.METADATA_COLLECTION;
 import static ca.uwaterloo.swag.mavencrawler.pojo.Repository.REPOSITORY_COLLECTION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -27,6 +29,7 @@ import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -85,14 +88,16 @@ public class CrawlerTest {
 		
 		// Given
 		Logger logger = Logger.getLogger(this.getClass().getName());
-		MongoDBHandler persister = MongoDBHandler.newInstance(logger);
+		MongoDBHandler handler = MongoDBHandler.newInstance(logger);
+		String folder = "folder";
 		
 		// When
-		Crawler crawler = new Crawler(logger, persister);
+		Crawler crawler = new Crawler(logger, handler, folder);
 		
 		// Then
 		assertEquals(logger, crawler.getLogger());
-		assertEquals(persister, crawler.getPersister());
+		assertEquals(handler, crawler.getMongoHandler());
+		assertEquals(folder, crawler.getDownloadFolder());
 	}
 	
 	@Test
@@ -100,7 +105,7 @@ public class CrawlerTest {
 		
 		// Given
 		Date testStart = new Date();
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
         String repoURL = "RepoURL";
 		
 		// When
@@ -149,44 +154,6 @@ public class CrawlerTest {
 	 * TODO: use mock instead of actual address
 	 */
 	@Test
-	public void testCrawlMetadataWithSubGroups() {
-		
-		// Given
-		Archetype archetype = new Archetype();
-		archetype.setGroupId("am.ik.archetype");
-		archetype.setArtifactId("maven-reactjs-blank-archetype");
-		archetype.setRepository("http://central.maven.org/maven2/");
-		Archetype.upsertInMongo(Arrays.asList(archetype), mongoHandler.getMongoDatabase(), null);
-
-		MongoDatabase db = _mongo.getDatabase("TestDatabase");
-		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
-		assertEquals(1, db.getCollection(ARCHETYPE_COLLECTION).count());
-		assertEquals(0, metadataCollection.count());
-		
-		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
-		crawler.updateMetadataForArchetype(archetype);
-		
-		// Then
-		assertEquals(1, metadataCollection.count());
-		Document metadata = metadataCollection.find().first();
-		assertEquals("am.ik.archetype", metadata.get("groupId"));
-		assertEquals("maven-reactjs-blank-archetype", metadata.get("artifactId"));
-		assertEquals("1.0.0", metadata.get("latest"));
-		assertEquals("1.0.0", metadata.get("release"));
-		assertEquals(1, ((List<?>)metadata.get("versions")).size());
-		
-		Calendar cal = Calendar.getInstance();
-		cal.set(2015, Calendar.MARCH, 23, 16, 58, 46);
-		cal.set(Calendar.MILLISECOND, 0);
-		assertEquals(cal.getTime(), metadata.get("lastUpdated"));
-	}
-
-	/**
-	 * Testing crawling metadata
-	 * TODO: use mock instead of actual address
-	 */
-	@Test
 	public void testCrawlMetadata() {
 		
 		// Given
@@ -202,7 +169,7 @@ public class CrawlerTest {
 		assertEquals(0, metadataCollection.count());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
 		crawler.updateMetadataForArchetype(archetype);
 		
 		// Then
@@ -210,12 +177,52 @@ public class CrawlerTest {
 		Document metadata = metadataCollection.find().first();
 		assertEquals("args4j", metadata.get("groupId"));
 		assertEquals("args4j-tools", metadata.get("artifactId"));
+		assertEquals("http://central.maven.org/maven2/", metadata.get("repository"));
 		assertEquals("2.33", metadata.get("latest"));
 		assertEquals("2.33", metadata.get("release"));
 		assertEquals(11, ((List<?>)metadata.get("versions")).size());
 		
 		Calendar cal = Calendar.getInstance();
 		cal.set(2016, Calendar.JANUARY, 31, 9, 2, 3);
+		cal.set(Calendar.MILLISECOND, 0);
+		assertEquals(cal.getTime(), metadata.get("lastUpdated"));
+	}
+
+	/**
+	 * Testing crawling metadata
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testCrawlMetadataWithSubGroups() {
+		
+		// Given
+		Archetype archetype = new Archetype();
+		archetype.setGroupId("am.ik.archetype");
+		archetype.setArtifactId("maven-reactjs-blank-archetype");
+		archetype.setRepository("http://central.maven.org/maven2/");
+		Archetype.upsertInMongo(Arrays.asList(archetype), mongoHandler.getMongoDatabase(), null);
+
+		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
+		assertEquals(1, db.getCollection(ARCHETYPE_COLLECTION).count());
+		assertEquals(0, metadataCollection.count());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
+		crawler.updateMetadataForArchetype(archetype);
+		
+		// Then
+		assertEquals(1, metadataCollection.count());
+		Document metadata = metadataCollection.find().first();
+		assertEquals("am.ik.archetype", metadata.get("groupId"));
+		assertEquals("maven-reactjs-blank-archetype", metadata.get("artifactId"));
+		assertEquals("http://central.maven.org/maven2/", metadata.get("repository"));
+		assertEquals("1.0.0", metadata.get("latest"));
+		assertEquals("1.0.0", metadata.get("release"));
+		assertEquals(1, ((List<?>)metadata.get("versions")).size());
+		
+		Calendar cal = Calendar.getInstance();
+		cal.set(2015, Calendar.MARCH, 23, 16, 58, 46);
 		cal.set(Calendar.MILLISECOND, 0);
 		assertEquals(cal.getTime(), metadata.get("lastUpdated"));
 	}
@@ -244,10 +251,86 @@ public class CrawlerTest {
 		assertEquals(0, metadataCollection.count());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
 		crawler.updateArchetypes();
 		
 		// Then
 		assertEquals(2, metadataCollection.count());
+	}
+
+	/**
+	 * Testing downloading libraries
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testDownloadLibrariesFromMetadata() {
+		
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("br.com.ingenieux");
+		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		metadata.setRepository("http://central.maven.org/maven2");
+		metadata.setVersions(Arrays.asList("1.5.0", "1.4.4"));
+		
+		File downloadFolder = new File("tempDownload");
+		assertFalse(downloadFolder.exists());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
+		crawler.downloadLibrariesFromMetadata(metadata);
+		
+		// Then
+		assertTrue(downloadFolder.exists());
+		assertTrue(downloadFolder.isDirectory());
+		assertEquals(2, downloadFolder.list().length);
+		
+		File lib1 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		File lib2 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.4.4.jar");
+		assertTrue(lib1.exists());
+		assertTrue(lib2.exists());
+
+		assertTrue(lib1.delete());
+		assertTrue(lib2.delete());
+		assertTrue(downloadFolder.delete());
+	}
+	
+	@Test
+	public void testDownloadLibraries() {
+
+		// Given
+		Metadata metadata1 = new Metadata();
+		metadata1.setGroupId("br.com.ingenieux");
+		metadata1.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		metadata1.setRepository("http://central.maven.org/maven2");
+		metadata1.setVersions(Arrays.asList("1.5.0"));
+		Metadata.upsertInMongo(metadata1, mongoHandler.getMongoDatabase(), null);
+
+		Metadata metadata2 = new Metadata();
+		metadata2.setGroupId("args4j");
+		metadata2.setArtifactId("args4j-tools");
+		metadata2.setRepository("http://central.maven.org/maven2");
+		metadata2.setVersions(Arrays.asList("2.33"));
+		Metadata.upsertInMongo(metadata2, mongoHandler.getMongoDatabase(), null);
+		
+		File downloadFolder = new File("tempDownload");
+		assertFalse(downloadFolder.exists());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
+		crawler.downloadLibraries();
+		
+		// Then
+		assertTrue(downloadFolder.exists());
+		assertTrue(downloadFolder.isDirectory());
+		assertEquals(2, downloadFolder.list().length);
+		
+		File lib1 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		File lib2 = new File(downloadFolder, "args4j.args4j-tools-2.33.jar");
+		assertTrue(lib1.exists());
+		assertTrue(lib2.exists());
+
+		assertTrue(lib1.delete());
+		assertTrue(lib2.delete());
+		assertTrue(downloadFolder.delete());
 	}
 }

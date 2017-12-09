@@ -35,7 +35,6 @@ public class Archetype {
 	private String repository;
 	private String description;
 	
-
 	@BsonIgnore
 	private URL metadataURL;
 	

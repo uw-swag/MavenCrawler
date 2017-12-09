@@ -13,13 +13,14 @@ import ca.uwaterloo.swag.mavencrawler.helpers.StringHelper;
 
 public class MainCrawlerHandler {
 	
-	private static final String DEFAULT_DATABASE_CONFIG = "database.conf"; 
+	private static final String DEFAULT_CONFIG_FILE = "mavencrawler.conf"; 
 	private static final String DEFAULT_URLS_LIST = "mavenURLs.list"; 
+	private static final String DOWNLOAD_FOLDER_PROPERTY = "DOWNLOAD_FOLDER";
 
 	public static void main(String[] args) {
 		
 		Logger logger = Logger.getLogger(MainCrawlerHandler.class.getName());
-		File configFile = new File(DEFAULT_DATABASE_CONFIG);
+		File configFile = new File(DEFAULT_CONFIG_FILE);
 		File urlsFile = new File(DEFAULT_URLS_LIST);
 		
 		Properties properties = new Properties();
@@ -27,14 +28,14 @@ public class MainCrawlerHandler {
 			properties.load(new FileInputStream(configFile));
 			logger.log(Level.INFO, "Read " + configFile.getAbsolutePath());
 		} catch (Exception e) {
-			LoggerHelper.logError(logger, e, "Could not open database.conf file.");
+			LoggerHelper.logError(logger, e, "Could not open mavencrawler.conf file.");
 			System.exit(1);
 		}
 		
 		List<String> mavenURLs = StringHelper.getStringsFromFile(urlsFile.getAbsolutePath());
 		logger.log(Level.INFO, "Crawling " + mavenURLs.size() + " maven URLs.");
 		MongoDBHandler persister = MongoDBHandler.newInstance(logger, properties);
-		Crawler crawler = new Crawler(logger, persister);
+		Crawler crawler = new Crawler(logger, persister, properties.getProperty(DOWNLOAD_FOLDER_PROPERTY));
 		crawler.crawlMavenURLs(mavenURLs);
 	}
 

@@ -1,9 +1,13 @@
 package ca.uwaterloo.swag.mavencrawler;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -27,11 +31,13 @@ public class Crawler {
 	
 	private Logger logger;
 	private MongoDBHandler mongoHandler;
+	private String downloadFolder;
 
-	public Crawler(Logger logger, MongoDBHandler handler) {
+	public Crawler(Logger logger, MongoDBHandler handler, String downloadFolder) {
 		super();
 		this.logger = logger;
 		this.mongoHandler = handler;
+		this.downloadFolder = downloadFolder;
 	}
 
 	public Logger getLogger() {
@@ -40,17 +46,23 @@ public class Crawler {
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
-	public MongoDBHandler getPersister() {
+	public MongoDBHandler getMongoHandler() {
 		return mongoHandler;
 	}
-	public void setPersister(MongoDBHandler persister) {
-		this.mongoHandler = persister;
+	public void setMongoHandler(MongoDBHandler mongoHandler) {
+		this.mongoHandler = mongoHandler;
 	}
-	
+	public String getDownloadFolder() {
+		return downloadFolder;
+	}
+	public void setDownloadFolder(String downloadFolder) {
+		this.downloadFolder = downloadFolder;
+	}
+
 	public void crawlMavenURLs(List<String> mavenURLS) {
 		for (String url : mavenURLS) {
 			logger.log(Level.INFO, "Crawling " + url + "...");
-//			crawlMavenRoot(url);
+			crawlMavenRoot(url);
 		}
 		updateArchetypes();
 	}
@@ -101,6 +113,7 @@ public class Crawler {
 			parser.parse(archetype.getMetadataURL().openStream(), metadataHandler);
 			logger.log(Level.INFO, "Parsed " + metadataHandler.getMetadata() + ".");
 			
+			metadataHandler.getMetadata().setRepository(archetype.getRepository());
 			Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoHandler.getMongoDatabase(), logger);
 			
 		} catch (MalformedURLException e) {
@@ -120,5 +133,50 @@ public class Crawler {
 			updateMetadataForArchetype(archetype);
 		}
 	}
+
+	public void downloadLibrariesFromMetadata(Metadata metadata) {
+		
+		File downloadFolder = new File(this.getDownloadFolder());
+		
+		// Check download folder
+		if ((!downloadFolder.exists() && !downloadFolder.mkdirs()) ||
+			(downloadFolder.exists() && !downloadFolder.isDirectory())) {
+			LoggerHelper.log(logger, Level.SEVERE, "Error with download folder");
+			return;
+		}
+		
+		for (URL url : metadata.getLibrariesURLs()) {
+			
+			File downloadFile = new File(downloadFolder, getLibraryFileNameGroupIdAndURL(metadata.getGroupId(), url));
+			
+			if (!downloadFile.exists()) {
+				try {
+			        ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+					FileOutputStream fos = new FileOutputStream(downloadFile);
+			        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+			        fos.close();
+			        rbc.close();
+				} catch (IOException e) {
+					LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
+				}
+			}
+		}
+	}
+
+	public void downloadLibraries() {
+		List<Metadata> metadataList = Metadata.findAllFromMongo(mongoHandler.getMongoDatabase());
+		
+		for (Metadata metadata : metadataList) {
+			downloadLibrariesFromMetadata(metadata);
+		}
+	}
+	
+	// Helpers
+	
+	private String getLibraryFileNameGroupIdAndURL(String groupId, URL url) {
+		String[] components = url.getPath().split("/");
+		return groupId + "." + components[components.length-1];
+	}
+
 	
 }

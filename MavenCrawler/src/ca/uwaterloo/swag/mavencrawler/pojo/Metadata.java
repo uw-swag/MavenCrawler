@@ -3,6 +3,10 @@ package ca.uwaterloo.swag.mavencrawler.pojo;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -10,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -23,10 +28,14 @@ public class Metadata {
 
 	private String groupId;
 	private String artifactId;
+	private String repository;
 	private String latest;
 	private String release;
 	private List<String> versions = new ArrayList<String>();
 	private Date lastUpdated;
+	
+	@BsonIgnore
+	private List<URL> librariesURLs;
 	
 	public String getGroupId() {
 		return groupId;
@@ -39,6 +48,12 @@ public class Metadata {
 	}
 	public void setArtifactId(String artifactId) {
 		this.artifactId = artifactId;
+	}
+	public String getRepository() {
+		return repository;
+	}
+	public void setRepository(String repository) {
+		this.repository = repository;
 	}
 	public String getLatest() {
 		return latest;
@@ -64,6 +79,36 @@ public class Metadata {
 	public void setLastUpdated(Date lastUpdated) {
 		this.lastUpdated = lastUpdated;
 	}
+	public List<URL> getLibrariesURLs() {
+		
+		if (librariesURLs == null ) {
+
+			librariesURLs = new ArrayList<>();
+			
+			if (this.getVersions() != null) {
+				
+				for (String version : this.getVersions()) {
+
+					String baseURL = (this.getRepository() + "/").replaceAll("(?<!(http:|https:))//", "/");
+					try {
+						URI libraryURI = new URI(baseURL).resolve(
+											this.getGroupId().replaceAll("\\.", "/") + "/" + 
+											this.getArtifactId() + "/" +
+											version + "/" + 
+											this.getArtifactId() + "-" + version + ".jar");
+						librariesURLs.add(libraryURI.toURL());
+					} catch (URISyntaxException | MalformedURLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+				}
+				
+			}
+		}
+		
+		return librariesURLs;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -73,6 +118,7 @@ public class Metadata {
 		result = prime * result + ((lastUpdated == null) ? 0 : lastUpdated.hashCode());
 		result = prime * result + ((latest == null) ? 0 : latest.hashCode());
 		result = prime * result + ((release == null) ? 0 : release.hashCode());
+		result = prime * result + ((repository == null) ? 0 : repository.hashCode());
 		result = prime * result + ((versions == null) ? 0 : versions.hashCode());
 		return result;
 	}
@@ -110,6 +156,11 @@ public class Metadata {
 				return false;
 		} else if (!release.equals(other.release))
 			return false;
+		if (repository == null) {
+			if (other.repository != null)
+				return false;
+		} else if (!repository.equals(other.repository))
+			return false;
 		if (versions == null) {
 			if (other.versions != null)
 				return false;
@@ -119,8 +170,9 @@ public class Metadata {
 	}
 	@Override
 	public String toString() {
-		return "Metadata [groupId=" + groupId + ", artifactId=" + artifactId + ", latest=" + latest + ", release="
-				+ release + ", versions=" + versions + ", lastUpdated=" + lastUpdated + "]";
+		return "Metadata [groupId=" + groupId + ", artifactId=" + artifactId + ", repository=" + repository
+				+ ", latest=" + latest + ", release=" + release + ", versions=" + versions + ", lastUpdated="
+				+ lastUpdated + "]";
 	}
 
 	public static void checkIndexesInCollection(MongoCollection<Metadata> collection) {
@@ -167,6 +219,10 @@ public class Metadata {
 					eq("artifactId", metadata.getArtifactId())), 
 				new Document("$set", metadata), 
 				new UpdateOptions().upsert(true));
+	}
+	public static List<Metadata> findAllFromMongo(MongoDatabase mongoDatabase) {
+		MongoCollection<Metadata> collection = mongoDatabase.getCollection(METADATA_COLLECTION, Metadata.class);
+		return collection.find().into(new ArrayList<Metadata>());
 	}
 
 }
