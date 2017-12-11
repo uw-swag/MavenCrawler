@@ -10,6 +10,8 @@ import org.bson.Document;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.UpdateOptions;
 
 public class Downloaded {
@@ -129,6 +131,11 @@ public class Downloaded {
 	public String toString() {
 		return "Downloaded [groupId=" + groupId + ", artifactId=" + artifactId + ", repository=" + repository
 				+ ", version=" + version + ", downloadDate=" + downloadDate + ", downloadPath=" + downloadPath + "]";
+	}
+
+	public static void checkIndexesInCollection(MongoCollection<Metadata> collection) {
+		IndexOptions indexOptions = new IndexOptions().unique(true);
+		collection.createIndex(Indexes.ascending("groupId", "artifactId", "repository", "version"), indexOptions);
 	}
 
 	public static void upsertInMongo(Downloaded downloaded, MongoDatabase mongoDatabase, Logger logger) {

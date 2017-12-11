@@ -3,9 +3,12 @@ package ca.uwaterloo.swag.mavencrawler.pojo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.bson.Document;
@@ -66,6 +69,30 @@ public class DownloadedTest {
 	public void tearDown() throws Exception {
 		_mongod.stop();
 		_mongodExe.stop();
+	}
+
+	@Test
+	public void testIndexesCreation() throws UnknownHostException, IOException {
+		
+		// Given
+		MongoDatabase db = handler.getMongoDatabase();
+		MongoCollection<Metadata> collection = db.getCollection(Downloaded.DOWNLOADED_COLLECTION, Metadata.class);
+		
+		// When
+		Downloaded.checkIndexesInCollection(collection);
+
+		// Then
+		List<Document> indexes = collection.listIndexes().into(new ArrayList<Document>());
+		assertEquals(2, indexes.size());
+		Document idKey = (Document) indexes.get(0).get("key");
+		assertNotNull(idKey);
+		assertNotNull(idKey.get("_id"));
+		Document indexKey = (Document) indexes.get(1).get("key");
+		assertNotNull(indexKey);
+		assertNotNull(indexKey.get("groupId"));
+		assertNotNull(indexKey.get("artifactId"));
+		assertNotNull(indexKey.get("repository"));
+		assertNotNull(indexKey.get("version"));
 	}
 
 	@Test
