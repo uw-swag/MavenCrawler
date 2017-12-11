@@ -221,6 +221,7 @@ public class Metadata {
 				new Document("$set", metadata), 
 				new UpdateOptions().upsert(true));
 	}
+	
 	public static List<Metadata> findAllFromMongo(MongoDatabase mongoDatabase) {
 		MongoCollection<Metadata> collection = mongoDatabase.getCollection(METADATA_COLLECTION, Metadata.class);
 		return collection.find().into(new ArrayList<Metadata>());

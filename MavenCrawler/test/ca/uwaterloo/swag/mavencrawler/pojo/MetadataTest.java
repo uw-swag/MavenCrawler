@@ -77,7 +77,7 @@ public class MetadataTest {
 		
 		// Given
 		MongoDatabase db = handler.getMongoDatabase();
-		MongoCollection<Metadata> collection = db.getCollection("Metadata", Metadata.class);
+		MongoCollection<Metadata> collection = db.getCollection(Metadata.METADATA_COLLECTION, Metadata.class);
 		
 		// When
 		Metadata.checkIndexesInCollection(collection);
@@ -114,7 +114,7 @@ public class MetadataTest {
 		Metadata.upsertInMongo(metadata2, db, null);
 		
 		// Then
-		MongoCollection<Document> collection = db.getCollection("Metadata");
+		MongoCollection<Document> collection = db.getCollection(Metadata.METADATA_COLLECTION);
 		ArrayList<Document> documents = collection.find().into(new ArrayList<Document>());
 		
 		assertNotNull(documents);
@@ -137,7 +137,7 @@ public class MetadataTest {
 		metadata2.setVersions(Arrays.asList("2", "3"));
 
 		MongoDatabase db = handler.getMongoDatabase();
-		MongoCollection<Document> collection = db.getCollection("Metadata");
+		MongoCollection<Document> collection = db.getCollection(Metadata.METADATA_COLLECTION);
 		Metadata.upsertInMongo(metadata1, db, null);
 		assertEquals(1, collection.count());
 		
@@ -170,7 +170,7 @@ public class MetadataTest {
 		metadata1.setLastUpdated(cal.getTime());
 
 		MongoDatabase db = handler.getMongoDatabase();
-		MongoCollection<Document> collection = db.getCollection("Metadata");
+		MongoCollection<Document> collection = db.getCollection(Metadata.METADATA_COLLECTION);
 		Metadata.upsertInMongo(metadata1, db, null);
 		assertEquals(1, collection.count());
 		
