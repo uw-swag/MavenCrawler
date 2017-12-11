@@ -25,6 +25,10 @@ public class Downloaded {
 	private Date downloadDate;
 	private String downloadPath;
 	
+	public Downloaded() {
+		super();
+	}
+	
 	public Downloaded(String groupId, String artifactId, String repository, String version, Date downloadDate,
 			String downloadPath) {
 		super();

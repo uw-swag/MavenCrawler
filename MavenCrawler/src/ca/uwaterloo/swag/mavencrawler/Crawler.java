@@ -23,6 +23,7 @@ import org.xml.sax.SAXException;
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import ca.uwaterloo.swag.mavencrawler.pojo.Repository;
 import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
@@ -139,49 +140,80 @@ public class Crawler {
 
 	public void downloadLibrariesFromMetadata(Metadata metadata) {
 		
-		File downloadFolder = new File(this.getDownloadFolder());
+		File libDownloadFolder = new File(this.getDownloadFolder(), metadata.getGroupId());
 		
 		// Check download folder
-		if ((!downloadFolder.exists() && !downloadFolder.mkdirs()) ||
-			(downloadFolder.exists() && !downloadFolder.isDirectory())) {
+		if ((!libDownloadFolder.exists() && !libDownloadFolder.mkdirs()) ||
+			(libDownloadFolder.exists() && !libDownloadFolder.isDirectory())) {
 			LoggerHelper.log(logger, Level.SEVERE, "Error with download folder");
 			return;
 		}
 		
-		for (URL url : metadata.getLibrariesURLs()) {
-			LoggerHelper.log(logger, Level.INFO, "Downloading " + url);
-			downloadLibFromURL(metadata.getGroupId(), url);
+		for (String version : metadata.getVersions()) {
+			URL url = metadata.findURLForVersion(version);
+			File downloadFile = new File(libDownloadFolder, metadata.buildJARFileNameForVersion(version));
+			
+			boolean success = false;
+			
+			try {
+				LoggerHelper.log(logger, Level.INFO, "Downloading " + url);
+				success = downloadLibFromURLToFile(url, downloadFile);
+			} catch (FileNotFoundException e) {
+				
+				// JAR not found, try AAR
+				try {
+					URL newURL = new URL(url, url.getPath().substring(0, url.getPath().length()-3) + "aar");
+					downloadFile = new File(libDownloadFolder, metadata.buildAARFileNameForVersion(version));
+
+					LoggerHelper.log(logger, Level.INFO, "JAR not found, trying " + newURL);
+					success = downloadLibFromURLToFile(newURL, downloadFile);
+				} catch (MalformedURLException |FileNotFoundException e1) {
+					LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + url);
+				}
+			}
+			
+			if (success) {
+				saveDownloaded(metadata, version, downloadFile);
+			}
+			
 		}
 	}
 
-	private void downloadLibFromURL(String groupId, URL url) {
-		File downloadFile = new File(downloadFolder, getLibraryFileNameFromGroupIdAndURL(groupId, url));
+	private void saveDownloaded(Metadata metadata, String version, File downloadFile) {
+		Downloaded downloaded = new Downloaded(metadata.getGroupId(), 
+											  metadata.getArtifactId(), 
+											  metadata.getRepository(), 
+											  version, 
+											  new Date(), 
+											  downloadFile.getAbsolutePath());
+		Downloaded.upsertInMongo(downloaded, mongoHandler.getMongoDatabase(), logger);
+	}
+
+	private boolean downloadLibFromURLToFile(URL url, File downloadFile) throws FileNotFoundException {
+		boolean success = false;
 		
-		if (!downloadFile.exists()) {
+		if (downloadFile.exists()) {
+			success = true;
+		}
+		else {
 			try {
-		        ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+				ReadableByteChannel rbc = Channels.newChannel(url.openStream());
 				FileOutputStream fos = new FileOutputStream(downloadFile);
 		        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
 		        fos.close();
 		        rbc.close();
+		        success = true;
 			} 
 			catch (FileNotFoundException e) {
-				
-				// JAR not found, try AAR
-				if (url.getPath().endsWith("jar")) {
-					try {
-						URL newURL = new URL(url, url.getPath().substring(0, url.getPath().length()-3) + "aar");
-						downloadLibFromURL(groupId, newURL);
-					} catch (MalformedURLException e1) {
-						LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
-					}
-				}
-				
+				throw e;
 			}
 			catch (IOException e) {
 				LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
 			}
+			
 		}
+		
+		return success;
 	}
 
 	public void downloadLibraries() {
@@ -191,13 +223,5 @@ public class Crawler {
 			downloadLibrariesFromMetadata(metadata);
 		}
 	}
-	
-	// Helpers
-	
-	private String getLibraryFileNameFromGroupIdAndURL(String groupId, URL url) {
-		String[] components = url.getPath().split("/");
-		return groupId + "." + components[components.length-1];
-	}
-
 	
 }

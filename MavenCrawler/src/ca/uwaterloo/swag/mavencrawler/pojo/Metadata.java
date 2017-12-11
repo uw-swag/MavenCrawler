@@ -9,7 +9,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -35,7 +37,7 @@ public class Metadata {
 	private Date lastUpdated;
 	
 	@BsonIgnore
-	private List<URL> librariesURLs;
+	private Map<String, URL> versionsURLS;
 	
 	public String getGroupId() {
 		return groupId;
@@ -80,11 +82,11 @@ public class Metadata {
 		this.lastUpdated = lastUpdated;
 	}
 	
-	public List<URL> getLibrariesURLs() {
+	public Map<String, URL> getVersionsURLS() {
 		
-		if (librariesURLs == null ) {
+		if (versionsURLS == null ) {
 
-			librariesURLs = new ArrayList<>();
+			versionsURLS = new HashMap<String, URL>();
 			
 			if (this.getVersions() != null) {
 				
@@ -97,7 +99,7 @@ public class Metadata {
 											this.getArtifactId() + "/" +
 											version + "/" + 
 											this.getArtifactId() + "-" + version + ".jar");
-						librariesURLs.add(libraryURI.toURL());
+						versionsURLS.put(version, libraryURI.toURL());
 					} catch (URISyntaxException | MalformedURLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -108,8 +110,17 @@ public class Metadata {
 			}
 		}
 		
-		return librariesURLs;
+		return versionsURLS;
 	}
+
+	public List<URL> findLibrariesURLs() {
+		return new ArrayList<URL>(this.getVersionsURLS().values());
+	}
+
+	public URL findURLForVersion(String version) {
+		return this.getVersionsURLS().get(version);
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -179,6 +190,18 @@ public class Metadata {
 	public static void checkIndexesInCollection(MongoCollection<Metadata> collection) {
 		IndexOptions indexOptions = new IndexOptions().unique(true);
 		collection.createIndex(Indexes.ascending("groupId", "artifactId"), indexOptions);
+	}
+	
+	public String buildJARFileNameForVersion(String version) {
+		return buildLibraryVersionFileName(version) + ".jar";
+	}
+	
+	public String buildAARFileNameForVersion(String version) {
+		return buildLibraryVersionFileName(version) + ".aar";
+	}
+
+	private String buildLibraryVersionFileName(String version) {
+		return groupId + "." + artifactId + "-" + version;
 	}
 	
 	/**

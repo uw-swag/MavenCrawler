@@ -29,6 +29,7 @@ import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
+import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
@@ -272,26 +273,71 @@ public class CrawlerTest {
 		metadata.setRepository("http://central.maven.org/maven2");
 		metadata.setVersions(Arrays.asList("1.5.0", "1.4.4"));
 		
-		File downloadFolder = new File("tempDownload");
-		assertFalse(downloadFolder.exists());
+		File rootDownloadFolder = new File("tempDownload");
+		File expectedLibraryFolder = new File(rootDownloadFolder, metadata.getGroupId());
+		assertFalse(rootDownloadFolder.exists());
+		assertFalse(expectedLibraryFolder.exists());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, rootDownloadFolder.getAbsolutePath());
 		crawler.downloadLibrariesFromMetadata(metadata);
 		
 		// Then
-		assertTrue(downloadFolder.exists());
-		assertTrue(downloadFolder.isDirectory());
-		assertEquals(2, downloadFolder.list().length);
+		assertTrue(rootDownloadFolder.exists());
+		assertTrue(rootDownloadFolder.isDirectory());
+		assertTrue(expectedLibraryFolder.exists());
+		assertTrue(expectedLibraryFolder.isDirectory());
+		assertEquals(1, rootDownloadFolder.list().length);
+		assertEquals(2, expectedLibraryFolder.list().length);
 		
-		File lib1 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
-		File lib2 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.4.4.jar");
+		File lib1 = new File(expectedLibraryFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		File lib2 = new File(expectedLibraryFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.4.4.jar");
 		assertTrue(lib1.exists());
 		assertTrue(lib2.exists());
 
 		assertTrue(lib1.delete());
 		assertTrue(lib2.delete());
-		assertTrue(downloadFolder.delete());
+		assertTrue(expectedLibraryFolder.delete());
+		assertTrue(rootDownloadFolder.delete());
+	}
+
+	/**
+	 * Testing downloading libraries
+	 * TODO: use mock instead of actual address
+	 */
+	@Test
+	public void testDownloadLibrariesFromMetadataShouldSaveToDB() {
+		
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("br.com.ingenieux");
+		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		metadata.setRepository("http://central.maven.org/maven2");
+		metadata.setVersions(Arrays.asList("1.5.0"));
+		
+		File rootDownloadFolder = new File("tempDownload");
+		MongoCollection<Downloaded> collection = mongoHandler.getMongoDatabase().getCollection(Downloaded.DOWNLOADED_COLLECTION, Downloaded.class);
+		assertEquals(0, collection.count());
+		
+		// When
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, rootDownloadFolder.getAbsolutePath());
+		crawler.downloadLibrariesFromMetadata(metadata);
+		
+		// Then
+		assertEquals(1, collection.count());
+		Downloaded downloaded = collection.find().first();
+		assertEquals(metadata.getGroupId(), downloaded.getGroupId());
+		assertEquals(metadata.getArtifactId(), downloaded.getArtifactId());
+		assertEquals(metadata.getRepository(), downloaded.getRepository());
+		assertEquals(metadata.getVersions().get(0), downloaded.getVersion());
+		assertNotNull(downloaded.getDownloadDate());
+		
+		File expectedLibPath = new File(rootDownloadFolder, "br.com.ingenieux/br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		assertEquals(expectedLibPath.getAbsolutePath(), downloaded.getDownloadPath());
+		
+		assertTrue(expectedLibPath.delete());
+		assertTrue(expectedLibPath.getParentFile().delete());
+		assertTrue(rootDownloadFolder.delete());
 	}
 
 	/**
@@ -308,27 +354,28 @@ public class CrawlerTest {
 		metadata.setRepository("http://central.maven.org/maven2");
 		metadata.setVersions(Arrays.asList("4.9.2"));
 		
-		File downloadFolder = new File("tempDownload");
-		assertFalse(downloadFolder.exists());
+		File rootDownloadFolder = new File("tempDownload");
+		File expectedLibraryFolder = new File(rootDownloadFolder, metadata.getGroupId());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, rootDownloadFolder.getAbsolutePath());
 		crawler.downloadLibrariesFromMetadata(metadata);
 		
 		// Then
-		assertTrue(downloadFolder.exists());
-		assertTrue(downloadFolder.isDirectory());
-		assertEquals(1, downloadFolder.list().length);
+		assertTrue(expectedLibraryFolder.exists());
+		assertTrue(expectedLibraryFolder.isDirectory());
+		assertEquals(1, expectedLibraryFolder.list().length);
 		
-		File lib1 = new File(downloadFolder, "ch.acra.acra-4.9.2.aar");
+		File lib1 = new File(expectedLibraryFolder, "ch.acra.acra-4.9.2.aar");
 		assertTrue(lib1.exists());
 
 		assertTrue(lib1.delete());
-		assertTrue(downloadFolder.delete());
+		assertTrue(expectedLibraryFolder.delete());
+		assertTrue(rootDownloadFolder.delete());
 	}
 	
 	@Test
-	public void testDownloadLibraries() {
+	public void testDownloadAllLibraries() {
 
 		// Given
 		Metadata metadata1 = new Metadata();
@@ -356,14 +403,15 @@ public class CrawlerTest {
 		assertTrue(downloadFolder.exists());
 		assertTrue(downloadFolder.isDirectory());
 		assertEquals(2, downloadFolder.list().length);
-		
-		File lib1 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
-		File lib2 = new File(downloadFolder, "args4j.args4j-tools-2.33.jar");
+
+		File lib1 = new File(downloadFolder, "br.com.ingenieux/br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		File lib2 = new File(downloadFolder, "args4j/args4j.args4j-tools-2.33.jar");
 		assertTrue(lib1.exists());
 		assertTrue(lib2.exists());
 
 		assertTrue(lib1.delete());
 		assertTrue(lib2.delete());
+		Arrays.stream(downloadFolder.listFiles()).forEach(f -> assertTrue(f.delete()));
 		assertTrue(downloadFolder.delete());
 	}
 }

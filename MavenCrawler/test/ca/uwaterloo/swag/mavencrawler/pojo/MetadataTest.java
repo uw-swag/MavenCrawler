@@ -226,16 +226,68 @@ public class MetadataTest {
 		metadata.setRepository("http://central.maven.org/maven2");
 		
 		// Then
-		assertEquals(expected, metadata.getLibrariesURLs());
+		assertEquals(expected, metadata.findLibrariesURLs());
 
 		// When
 		metadata.setRepository("http://central.maven.org/maven2/");
 		
 		// Then
-		assertEquals(expected, metadata.getLibrariesURLs());
+		assertEquals(expected, metadata.findLibrariesURLs());
 	}
 	
+	@Test
+	public void testGetURLForVersion() throws MalformedURLException{
 
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("br.com.ingenieux");
+		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		metadata.setRepository("http://central.maven.org/maven2");
+		metadata.setVersions(Arrays.asList("1.5.0", "1.4.4"));
+		
+		// When
+		URL expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/1.5.0/elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		
+		// Then
+		assertEquals(expected, metadata.findURLForVersion("1.5.0"));
+
+		// When
+		expected = new URL("http://central.maven.org/maven2/br/com/ingenieux/elasticbeanstalk-docker-dropwizard-webapp-archetype/1.4.4/elasticbeanstalk-docker-dropwizard-webapp-archetype-1.4.4.jar");
+		
+		// Then
+		assertEquals(expected, metadata.findURLForVersion("1.4.4"));
+	}
+	
+	@Test
+	public void testBuildJARFileNameForVersion() {
+
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("br.com.ingenieux");
+		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		
+		// When
+		String expected = "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar";
+		
+		// Then
+		assertEquals(expected, metadata.buildJARFileNameForVersion("1.5.0"));
+	}
+	
+	@Test
+	public void testBuildAARFileNameForVersion() {
+
+		// Given
+		Metadata metadata = new Metadata();
+		metadata.setGroupId("br.com.ingenieux");
+		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		
+		// When
+		String expected = "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.aar";
+		
+		// Then
+		assertEquals(expected, metadata.buildAARFileNameForVersion("1.5.0"));
+	}
+	
 	@Test
 	public void testFindAllMetadata() {
 		
