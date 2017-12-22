@@ -62,20 +62,20 @@ public class CrawlerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		
+
 		_mongodExe = starter.prepare(new MongodConfigBuilder()
 				.version(Version.Main.PRODUCTION)
 				.net(new Net("localhost", 12345, Network.localhostIsIPv6()))
 				.build());
-			_mongod = _mongodExe.start();
-			
-			mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
-			mongoHandler.setHost("localhost");
-			mongoHandler.setPort(12345);
-			mongoHandler.setAuthEnabled(false);
-			mongoHandler.setDatabaseName("TestDatabase");
+		_mongod = _mongodExe.start();
 
-			_mongo = new MongoClient("localhost", 12345);
+		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
+		mongoHandler.setHost("localhost");
+		mongoHandler.setPort(12345);
+		mongoHandler.setAuthEnabled(false);
+		mongoHandler.setDatabaseName("TestDatabase");
+
+		_mongo = new MongoClient("localhost", 12345);
 	}
 
 	@After
@@ -133,14 +133,14 @@ public class CrawlerTest {
 //	public void testCrawl() throws Exception {
 //		
 //        // Given
-//        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), persister);
+//        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
 //        
 //        // When
-//        crawler.crawlMavenRoot("http://central.maven.org/maven2");
+//        crawler.crawlCatalogFromMavenRoot("http://central.maven.org/maven2");
 //        
 //        // Then
 //		MongoDatabase db = _mongo.getDatabase("TestDatabase");
-//		MongoCollection<Document> collection = db.getCollection("Archetypes");
+//		MongoCollection<Document> collection = db.getCollection(ARCHETYPE_COLLECTION);
 //		System.out.println("Gotten archetypes: " + collection.count());
 //		
 //		ArrayList<String> docs = collection.distinct("artifactId", String.class).into(new ArrayList<String>());
@@ -148,6 +148,27 @@ public class CrawlerTest {
 //		System.out.println("docs: " + docs.size());
 //		
 //		assertTrue(collection.count() > 0);
+//	}
+
+	/**
+	 * Helper test to crawl multiple metadata from Maven Central
+	 * TODO: use mock instead of actual address
+	 */
+//	@Test
+//	public void testCrawlMetadataFromMavenRoots() {
+//
+//        // Given
+//		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+//		MongoCollection<Document> collection = db.getCollection(METADATA_COLLECTION);
+//		assertEquals(0, collection.count());
+//        
+//        // When
+//		Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
+//        crawler.crawlMetadataFromMavenRoots(Arrays.asList("http://central.maven.org/maven2/abbot"));
+//        
+//        // Then
+//		assertTrue(collection.count() > 0);
+//		assertEquals(2, collection.count());
 //	}
 
 	/**

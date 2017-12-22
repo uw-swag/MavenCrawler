@@ -125,6 +125,21 @@ public class MetadataCrawlerTest {
 		assertFalse(crawler.shouldVisit(referringPage, url));
 	}
 
+	@Test
+	public void testShouldVisitMustNotCrawlCatalog() {
+
+		// Given
+		WebURL referringUrl = new WebURL();
+		referringUrl.setURL("http://central.maven.org/maven2");
+		Page referringPage = new Page(referringUrl);
+		
+		// When
+		WebURL url = new WebURL();
+		url.setURL("http://central.maven.org/maven2/archetype-catalog.xml");
+		
+		// Then
+		assertFalse(crawler.shouldVisit(referringPage, url));
+	}
 
 	@Test
 	public void testShouldVisitMustOnlyCrawlDown() {

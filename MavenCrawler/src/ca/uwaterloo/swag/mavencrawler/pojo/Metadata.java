@@ -199,6 +199,7 @@ public class Metadata {
 	public String buildAARFileNameForVersion(String version) {
 		return buildLibraryVersionFileName(version) + ".aar";
 	}
+	
 
 	private String buildLibraryVersionFileName(String version) {
 		return groupId + "." + artifactId + "-" + version;

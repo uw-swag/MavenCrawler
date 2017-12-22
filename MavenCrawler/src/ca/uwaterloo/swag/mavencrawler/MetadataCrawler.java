@@ -66,6 +66,11 @@ public class MetadataCrawler extends WebCrawler {
 			return false;
 		}
 		
+		// Do not visit catalog
+		if (url.getURL().toLowerCase().endsWith("archetype-catalog.xml")) {
+			return false;
+		}
+		
 		// Avoid visiting unwanted files
 		return !FILTERS.matcher(url.getURL().toLowerCase()).matches();
 	}

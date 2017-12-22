@@ -62,15 +62,17 @@ public class Crawler {
 	}
 
 	public void crawlMavenURLs(List<String> mavenURLS) {
-		for (String url : mavenURLS) {
-			logger.log(Level.INFO, "Crawling " + url + "...");
-			crawlMavenRoot(url);
-		}
-		updateArchetypes();
+		logger.log(Level.INFO, "Crawling " + mavenURLS + "...");
+		crawlMetadataFromMavenRoots(mavenURLS);
+		logger.log(Level.INFO, "Downloading libraries...");
 		downloadLibraries();
 	}
 
-	public void crawlMavenRoot(String mavenRootURL) {
+	public void crawlMetadataFromMavenRoots(List<String> mavenRoots) {
+		MetadataCrawler.crawlMavenRoots(mavenRoots, mongoHandler.getMongoDatabase(), logger);
+	}
+
+	public void crawlCatalogFromMavenRoot(String mavenRootURL) {
 		
 		try {
 			URL url = new URL(mavenRootURL + "/archetype-catalog.xml");
@@ -107,6 +109,14 @@ public class Crawler {
 		}
 	}
 
+	public void updateArchetypes() {
+		List<Archetype> arquetypes = Archetype.findAllFromMongo(mongoHandler.getMongoDatabase());
+		
+		for (Archetype archetype : arquetypes) {
+			updateMetadataForArchetype(archetype);
+		}
+	}
+
 	public void updateMetadataForArchetype(Archetype archetype) {
 		
 		try {
@@ -127,14 +137,6 @@ public class Crawler {
 					 archetype.getArtifactId() + "/maven-metadata.xml");
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
-		}
-	}
-
-	public void updateArchetypes() {
-		List<Archetype> arquetypes = Archetype.findAllFromMongo(mongoHandler.getMongoDatabase());
-		
-		for (Archetype archetype : arquetypes) {
-			updateMetadataForArchetype(archetype);
 		}
 	}
 
