@@ -183,6 +183,27 @@ public class MetadataCrawlerTest {
 		assertEquals(metadata.get("repository"), "http://central.maven.org");
 	}
 
+	// JCenter links have a "/:" before folder names (maybe to avoid crawling?)
+	@Test
+	public void testHandleJCenterLinks() {
+		
+		// Given
+		WebURL url = new WebURL();
+		
+		// When
+		url.setURL("https://jcenter.bintray.com/:AbsFrame/");
+		
+		// Then
+		assertEquals("https://jcenter.bintray.com/AbsFrame/", crawler.handleUrlBeforeProcess(url).getURL());
+
+		
+		// When
+		url.setURL("http://central.maven.org/maven2/activecluster/activecluster/maven-metadata.xml");
+		
+		// Then
+		assertEquals("http://central.maven.org/maven2/activecluster/activecluster/maven-metadata.xml", crawler.handleUrlBeforeProcess(url).getURL());
+	}
+
 	/**
 	 * Testing crawling multiple metadata
 	 * TODO: use mock instead of actual address
@@ -202,6 +223,27 @@ public class MetadataCrawlerTest {
 //
 //		// Then
 //		assertEquals(2, metadataCollection.count());
+//	}
+
+	/**
+	 * Testing crawling JCenter metadata
+	 * TODO: use mock instead of actual address
+	 */
+//	@Test
+//	public void testCrawlJCenterRepository() {
+//
+//		// Given
+//		List<String> mavenRoots = Arrays.asList("https://jcenter.bintray.com/AbsFrame/");
+//
+//		MongoDatabase db = _mongo.getDatabase("TestDatabase");
+//		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
+//		assertEquals(0, metadataCollection.count());
+//
+//		// When
+//		MetadataCrawler.crawlMavenRoots(mavenRoots, mongoHandler.getMongoDatabase(), null);
+//
+//		// Then
+//		assertEquals(1, metadataCollection.count());
 //	}
 
 }

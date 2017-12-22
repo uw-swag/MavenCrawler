@@ -59,6 +59,15 @@ public class MetadataCrawler extends WebCrawler {
 	}
 	
 	@Override
+	protected WebURL handleUrlBeforeProcess(WebURL curURL) {
+		
+		WebURL handledURL = new WebURL();
+		handledURL.setURL(curURL.getURL().replaceAll("/:", "/"));
+		
+		return handledURL;
+	}
+	
+	@Override
 	public boolean shouldVisit(Page referringPage, WebURL url) {
 		
 		// Only crawl down folders
@@ -108,6 +117,7 @@ public class MetadataCrawler extends WebCrawler {
 
 		CrawlConfig config = new CrawlConfig();
 		config.setCrawlStorageFolder(tempCrawlStorageFolder);
+		config.setIncludeBinaryContentInCrawling(true);
 
 		/*
 		 * Instantiate the controller for this crawl.
