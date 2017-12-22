@@ -142,7 +142,7 @@ public class Crawler {
 
 	public void downloadLibrariesFromMetadata(Metadata metadata) {
 		
-		File libDownloadFolder = new File(this.getDownloadFolder(), metadata.getGroupId());
+		File libDownloadFolder = new File(this.getDownloadFolder(), metadata.getGroupId() + "." + metadata.getArtifactId());
 		
 		// Check download folder
 		if ((!libDownloadFolder.exists() && !libDownloadFolder.mkdirs()) ||
