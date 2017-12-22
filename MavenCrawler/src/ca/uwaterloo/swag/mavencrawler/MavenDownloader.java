@@ -2,26 +2,22 @@ package ca.uwaterloo.swag.mavencrawler;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
-import ca.uwaterloo.swag.mavencrawler.helpers.StringHelper;
 
-public class MainCrawlerHandler {
-	
+public class MavenDownloader {
+
 	private static final String DEFAULT_CONFIG_FILE = "mavencrawler.conf"; 
-	private static final String DEFAULT_URLS_LIST = "mavenURLs.list"; 
 	private static final String DOWNLOAD_FOLDER_PROPERTY = "DOWNLOAD_FOLDER";
 
 	public static void main(String[] args) {
 		
 		Logger logger = Logger.getLogger(MainCrawlerHandler.class.getName());
 		File configFile = new File(DEFAULT_CONFIG_FILE);
-		File urlsFile = new File(DEFAULT_URLS_LIST);
 		
 		Properties properties = new Properties();
 		try {
@@ -32,11 +28,22 @@ public class MainCrawlerHandler {
 			System.exit(1);
 		}
 		
-		List<String> mavenURLs = StringHelper.getStringsFromFile(urlsFile.getAbsolutePath());
-		logger.log(Level.INFO, "Crawling " + mavenURLs.size() + " maven URLs.");
+		logger.log(Level.INFO, "Downloading libraries...");
 		MongoDBHandler persister = MongoDBHandler.newInstance(logger, properties);
+		
 		Crawler crawler = new Crawler(logger, persister, properties.getProperty(DOWNLOAD_FOLDER_PROPERTY));
-		crawler.crawlMavenURLs(mavenURLs);
+		
+		while (true) {
+			// Keep downloading indefinitely
+			crawler.downloadLibraries();
+			
+			// Wait 5 minutes while more libraries metadata are crawled
+			try {
+				Thread.sleep(5*60*1000);
+			} catch (InterruptedException e) {
+				LoggerHelper.log(logger, Level.INFO, "Error with thread interruption while waiting for downloads.");
+			}
+		}
 	}
 
 }
