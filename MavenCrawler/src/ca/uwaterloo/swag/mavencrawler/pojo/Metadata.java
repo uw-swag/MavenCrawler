@@ -3,9 +3,7 @@ package ca.uwaterloo.swag.mavencrawler.pojo;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
@@ -100,7 +98,7 @@ public class Metadata {
 											version + "/" + 
 											this.getArtifactId() + "-" + version + ".jar");
 						versionsURLS.put(version, libraryURI.toURL());
-					} catch (URISyntaxException | MalformedURLException e) {
+					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}

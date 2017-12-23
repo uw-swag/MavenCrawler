@@ -2,9 +2,12 @@ package ca.uwaterloo.swag.mavencrawler;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Properties;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
@@ -14,9 +17,13 @@ public class MavenDownloader {
 	private static final String DEFAULT_CONFIG_FILE = "mavencrawler.conf"; 
 	private static final String DOWNLOAD_FOLDER_PROPERTY = "DOWNLOAD_FOLDER";
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SecurityException, IOException {
 		
+		FileHandler fileHandler = new FileHandler("log.txt");
+		fileHandler.setFormatter(new SimpleFormatter());
 		Logger logger = Logger.getLogger(MainCrawlerHandler.class.getName());
+		logger.addHandler(fileHandler);
+		
 		File configFile = new File(DEFAULT_CONFIG_FILE);
 		
 		Properties properties = new Properties();
