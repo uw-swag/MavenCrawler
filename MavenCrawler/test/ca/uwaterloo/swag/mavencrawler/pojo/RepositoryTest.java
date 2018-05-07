@@ -27,44 +27,49 @@ import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
 
 public class RepositoryTest {
-
+	
 	/**
 	 * please store Starter or RuntimeConfig in a static final field
 	 * if you want to use artifact store caching (or else disable caching)
 	 */
 	private static final MongodStarter starter = MongodStarter.getDefaultInstance();
-	private MongodExecutable _mongodExe;
-	private MongodProcess _mongod;
+	private static MongodExecutable _mongodExe;
+	private static MongodProcess _mongod;
+	private static MongoDBHandler handler;
 	
-	private MongoDBHandler handler;
+	private MongoDatabase db;
 	
+
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	@Before
-	public void setUp() throws Exception {
 		_mongodExe = starter.prepare(new MongodConfigBuilder()
 				.version(Version.Main.PRODUCTION)
 				.net(new Net("localhost", 12345, Network.localhostIsIPv6()))
 				.build());
 		_mongod = _mongodExe.start();
 		
-		handler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
+		handler = MongoDBHandler.newInstance(Logger.getLogger(ArchetypeTest.class.getName()));
 		handler.setHost("localhost");
 		handler.setPort(12345);
 		handler.setAuthEnabled(false);
 		handler.setDatabaseName("TestDatabase");
 	}
 
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
 		_mongod.stop();
 		_mongodExe.stop();
+	}
+
+	@Before
+	public void setUp() throws Exception {
+		db = handler.getMongoDatabase();
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		db.drop();
+		db = null;
 	}
 
 	@Test
@@ -93,7 +98,6 @@ public class RepositoryTest {
 		Repository repo = new Repository();
 		repo.setUrl(url);
 		repo.setLastChecked(new Date());
-		MongoDatabase db = handler.getMongoDatabase();
 		MongoCollection<Repository> collection = db.getCollection("Repositories", Repository.class);
 		collection.insertOne(repo);
 		assertEquals(1, db.getCollection("Repositories").count());
@@ -110,7 +114,6 @@ public class RepositoryTest {
 	public void testSetLastCheckedDateShouldInsertNotFoundURL() {
 
 		// Given
-		MongoDatabase db = handler.getMongoDatabase();
 		assertEquals(0, db.getCollection("Repositories").count());
 		String url = "url";
 		

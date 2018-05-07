@@ -38,45 +38,49 @@ public class MetadataTest {
 	 * if you want to use artifact store caching (or else disable caching)
 	 */
 	private static final MongodStarter starter = MongodStarter.getDefaultInstance();
-	private MongodExecutable _mongodExe;
-	private MongodProcess _mongod;
+	private static MongodExecutable _mongodExe;
+	private static MongodProcess _mongod;
+	private static MongoDBHandler handler;
 	
-	private MongoDBHandler handler;
+	private MongoDatabase db;
+	
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	@Before
-	public void setUp() throws Exception {
 		_mongodExe = starter.prepare(new MongodConfigBuilder()
 				.version(Version.Main.PRODUCTION)
 				.net(new Net("localhost", 12345, Network.localhostIsIPv6()))
 				.build());
 		_mongod = _mongodExe.start();
 		
-		handler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
+		handler = MongoDBHandler.newInstance(Logger.getLogger(ArchetypeTest.class.getName()));
 		handler.setHost("localhost");
 		handler.setPort(12345);
 		handler.setAuthEnabled(false);
 		handler.setDatabaseName("TestDatabase");
 	}
 
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
 		_mongod.stop();
 		_mongodExe.stop();
+	}
+
+	@Before
+	public void setUp() throws Exception {
+		db = handler.getMongoDatabase();
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		db.drop();
+		db = null;
 	}
 
 	@Test
 	public void testIndexesCreation() throws UnknownHostException, IOException {
 		
 		// Given
-		MongoDatabase db = handler.getMongoDatabase();
 		MongoCollection<Metadata> collection = db.getCollection(Metadata.METADATA_COLLECTION, Metadata.class);
 		
 		// When
@@ -106,8 +110,6 @@ public class MetadataTest {
 		metadata2.setArtifactId("artifact2");
 		metadata1.setVersions(Arrays.asList("1"));
 		metadata2.setVersions(Arrays.asList("2"));
-
-		MongoDatabase db = handler.getMongoDatabase();
 		
 		// When
 		Metadata.upsertInMongo(metadata1, db, null);
@@ -136,7 +138,6 @@ public class MetadataTest {
 		metadata1.setVersions(Arrays.asList("1", "2"));
 		metadata2.setVersions(Arrays.asList("2", "3"));
 
-		MongoDatabase db = handler.getMongoDatabase();
 		MongoCollection<Document> collection = db.getCollection(Metadata.METADATA_COLLECTION);
 		Metadata.upsertInMongo(metadata1, db, null);
 		assertEquals(1, collection.count());
@@ -169,7 +170,6 @@ public class MetadataTest {
 		cal.set(2017, 1, 1, 0, 0, 1);
 		metadata1.setLastUpdated(cal.getTime());
 
-		MongoDatabase db = handler.getMongoDatabase();
 		MongoCollection<Document> collection = db.getCollection(Metadata.METADATA_COLLECTION);
 		Metadata.upsertInMongo(metadata1, db, null);
 		assertEquals(1, collection.count());
@@ -301,7 +301,6 @@ public class MetadataTest {
 		metadata1.setVersions(Arrays.asList("1"));
 		metadata2.setVersions(Arrays.asList("2"));
 
-		MongoDatabase db = handler.getMongoDatabase();
 		Metadata.upsertInMongo(metadata1, db, null);
 		Metadata.upsertInMongo(metadata2, db, null);
 		

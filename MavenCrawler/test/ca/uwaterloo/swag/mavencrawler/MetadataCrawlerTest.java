@@ -162,6 +162,22 @@ public class MetadataCrawlerTest {
 	}
 
 	@Test
+	public void testShouldVisitPOMFile() {
+
+		// Given
+		WebURL referringUrl = new WebURL();
+		referringUrl.setURL("http://central.maven.org/maven2/log4j/log4j/1.2.16");
+		Page referringPage = new Page(referringUrl);
+		WebURL url = new WebURL();
+		
+		// When
+		url.setURL("http://central.maven.org/maven2/log4j/log4j/1.2.16/log4j-1.2.16.pom");
+		
+		// Then
+		assertTrue(crawler.shouldVisit(referringPage, url));
+	}
+
+	@Test
 	public void testVisitPage() {
 
 		// Given
