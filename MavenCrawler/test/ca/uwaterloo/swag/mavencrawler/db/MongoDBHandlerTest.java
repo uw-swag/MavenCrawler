@@ -38,42 +38,43 @@ public class MongoDBHandlerTest {
 	 * if you want to use artifact store caching (or else disable caching)
 	 */
 	private static final MongodStarter starter = MongodStarter.getDefaultInstance();
-	private MongodExecutable _mongodExe;
-	private MongodProcess _mongod;
-	private MongoClient _mongo;
+	private static MongodExecutable _mongodExe;
+	private static MongodProcess _mongod;
+	private static MongoClient _mongo;
 	
 	private MongoDBHandler handler;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	@Before
-	public void setUp() throws Exception {
 
 		_mongodExe = starter.prepare(new MongodConfigBuilder()
 			.version(Version.Main.PRODUCTION)
 			.net(new Net("localhost", 12345, Network.localhostIsIPv6()))
 			.build());
 		_mongod = _mongodExe.start();
-		
-		handler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
-		handler.setHost("localhost");
-		handler.setPort(12345);
-		handler.setAuthEnabled(false);
-		handler.setDatabaseName("TestDatabase");
 
 		_mongo = new MongoClient("localhost", 12345);
 	}
 
-	@After
-	public void tearDown() throws Exception {
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
 		_mongod.stop();
 		_mongodExe.stop();
+	}
+
+	@Before
+	public void setUp() throws Exception {
+		
+		handler = MongoDBHandler.newInstance(Logger.getLogger(MongoDBHandlerTest.class.getName()));
+		handler.setHost("localhost");
+		handler.setPort(12345);
+		handler.setAuthEnabled(false);
+		handler.setDatabaseName("TestDatabase");
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		handler.getMongoDatabase().drop();
 	}
 
 	@Test
