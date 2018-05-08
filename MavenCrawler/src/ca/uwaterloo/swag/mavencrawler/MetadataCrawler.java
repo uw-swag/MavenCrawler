@@ -153,6 +153,7 @@ public class MetadataCrawler extends WebCrawler {
 		CrawlConfig config = new CrawlConfig();
 		config.setCrawlStorageFolder(tempCrawlStorageFolder);
 		config.setIncludeBinaryContentInCrawling(true);
+		config.setResumableCrawling(true);
 
 		/*
 		 * Instantiate the controller for this crawl.
