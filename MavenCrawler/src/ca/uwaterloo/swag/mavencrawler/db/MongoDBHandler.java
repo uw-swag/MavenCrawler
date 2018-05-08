@@ -61,15 +61,15 @@ public class MongoDBHandler {
 	private MongoClient mongo;
 	
 	private enum PropertyType {
-		HOST,
-		PORT,
-		AUTH_ENABLED,
-		AUTHDATABASE,
-		USERNAME,
-		PASSWORD,
-		SSL_ENABLED,
-		REPLICASETNAME,
-		MAINDATABASE
+		MONGODB_HOST,
+		MONGODB_PORT,
+		MONGODB_AUTH_ENABLED,
+		MONGODB_AUTHDATABASE,
+		MONGODB_USERNAME,
+		MONGODB_PASSWORD,
+		MONGODB_SSL_ENABLED,
+		MONGODB_REPLICASETNAME,
+		MONGODB_MAINDATABASE
 	}
 
 	// Disable default constructor
@@ -85,15 +85,15 @@ public class MongoDBHandler {
 	public static MongoDBHandler newInstance(Logger aLogger, Properties properties) {
 		MongoDBHandler persister = new MongoDBHandler();
 		persister.logger = aLogger;
-		persister.host = properties.getProperty(PropertyType.HOST.name());
-		persister.port = Integer.valueOf(properties.getProperty(PropertyType.PORT.name()));
-		persister.authEnabled = Boolean.valueOf(properties.getProperty(PropertyType.AUTH_ENABLED.name()));
-		persister.authDatabase = properties.getProperty(PropertyType.AUTHDATABASE.name());
-		persister.username = properties.getProperty(PropertyType.USERNAME.name());
-		persister.password = properties.getProperty(PropertyType.PASSWORD.name());
-		persister.sslEnabled = Boolean.valueOf(properties.getProperty(PropertyType.SSL_ENABLED.name()));
-		persister.replicaSetName = properties.getProperty(PropertyType.REPLICASETNAME.name());
-		persister.databaseName = properties.getProperty(PropertyType.MAINDATABASE.name());
+		persister.host = properties.getProperty(PropertyType.MONGODB_HOST.name());
+		persister.port = Integer.valueOf(properties.getProperty(PropertyType.MONGODB_PORT.name()));
+		persister.authEnabled = Boolean.valueOf(properties.getProperty(PropertyType.MONGODB_AUTH_ENABLED.name()));
+		persister.authDatabase = properties.getProperty(PropertyType.MONGODB_AUTHDATABASE.name());
+		persister.username = properties.getProperty(PropertyType.MONGODB_USERNAME.name());
+		persister.password = properties.getProperty(PropertyType.MONGODB_PASSWORD.name());
+		persister.sslEnabled = Boolean.valueOf(properties.getProperty(PropertyType.MONGODB_SSL_ENABLED.name()));
+		persister.replicaSetName = properties.getProperty(PropertyType.MONGODB_REPLICASETNAME.name());
+		persister.databaseName = properties.getProperty(PropertyType.MONGODB_MAINDATABASE.name());
 		
 		return persister;
 	}
