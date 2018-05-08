@@ -1,6 +1,7 @@
 package ca.uwaterloo.swag.mavencrawler;
 
 import static ca.uwaterloo.swag.mavencrawler.pojo.Metadata.METADATA_COLLECTION;
+import static ca.uwaterloo.swag.mavencrawler.pojo.VersionPom.VERSIONPOM_COLLECTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -38,24 +39,16 @@ public class MetadataCrawlerTest {
 	 * if you want to use artifact store caching (or else disable caching)
 	 */
 	private static final MongodStarter starter = MongodStarter.getDefaultInstance();
-	private MongodExecutable _mongodExe;
-	private MongodProcess _mongod;
-	private MongoClient _mongo;
-
-	private MongoDBHandler mongoHandler;
+	private static MongodExecutable _mongodExe;
+	private static MongodProcess _mongod;
+	private static MongoClient _mongo;
+	private static MongoDBHandler mongoHandler;
 
 	private MetadataCrawler crawler;
+	private MongoDatabase db;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
-
-	@Before
-	public void setUp() throws Exception {
 
 		_mongodExe = starter.prepare(new MongodConfigBuilder()
 				.version(Version.Main.PRODUCTION)
@@ -63,21 +56,31 @@ public class MetadataCrawlerTest {
 				.build());
 		_mongod = _mongodExe.start();
 
-		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(this.getClass().getName()));
+		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(MetadataCrawlerTest.class.getName()));
 		mongoHandler.setHost("localhost");
 		mongoHandler.setPort(12345);
 		mongoHandler.setAuthEnabled(false);
 		mongoHandler.setDatabaseName("TestDatabase");
 
 		_mongo = new MongoClient("localhost", 12345);
+	}
 
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
+		_mongod.stop();
+		_mongodExe.stop();
+	}
+
+	@Before
+	public void setUp() throws Exception {
 		this.crawler = new MetadataCrawler(null, mongoHandler.getMongoDatabase());
+		db = _mongo.getDatabase("TestDatabase");
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		_mongod.stop();
-		_mongodExe.stop();
+		db.drop();
+		db = null;
 	}
 
 	@Test
@@ -185,7 +188,6 @@ public class MetadataCrawlerTest {
 		url.setURL("http://central.maven.org/maven2/activecluster/activecluster/maven-metadata.xml");
 		Page page = new Page(url);
 
-		MongoDatabase db = _mongo.getDatabase("TestDatabase");
 		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
 		assertEquals(0, metadataCollection.count());
 
@@ -196,6 +198,28 @@ public class MetadataCrawlerTest {
 		assertEquals(1, metadataCollection.count());
 		Document metadata = metadataCollection.find().first();
 		assertEquals(metadata.get("groupId"), "activecluster");
+		assertEquals(metadata.get("repository"), "http://central.maven.org");
+	}
+
+
+	@Test
+	public void testVisitPomFile() {
+
+		// Given
+		WebURL url = new WebURL();
+		url.setURL("http://central.maven.org/maven2/log4j/log4j/1.2.16/log4j-1.2.16.pom");
+		Page page = new Page(url);
+
+		MongoCollection<Document> versionPomsCollection = db.getCollection(VERSIONPOM_COLLECTION);
+		assertEquals(0, versionPomsCollection.count());
+
+		// When
+		crawler.visit(page);
+
+		// Then
+		assertEquals(1, versionPomsCollection.count());
+		Document metadata = versionPomsCollection.find().first();
+		assertEquals(metadata.get("groupId"), "log4j");
 		assertEquals(metadata.get("repository"), "http://central.maven.org");
 	}
 
@@ -230,7 +254,6 @@ public class MetadataCrawlerTest {
 //		// Given
 //		List<String> mavenRoots = Arrays.asList("http://central.maven.org/maven2/abbot/");
 //
-//		MongoDatabase db = _mongo.getDatabase("TestDatabase");
 //		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
 //		assertEquals(0, metadataCollection.count());
 //
@@ -251,7 +274,6 @@ public class MetadataCrawlerTest {
 //		// Given
 //		List<String> mavenRoots = Arrays.asList("https://jcenter.bintray.com/AbsFrame/");
 //
-//		MongoDatabase db = _mongo.getDatabase("TestDatabase");
 //		MongoCollection<Document> metadataCollection = db.getCollection(METADATA_COLLECTION);
 //		assertEquals(0, metadataCollection.count());
 //

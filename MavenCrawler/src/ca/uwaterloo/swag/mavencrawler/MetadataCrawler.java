@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,7 +20,9 @@ import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
+import ca.uwaterloo.swag.mavencrawler.pojo.VersionPom;
 import ca.uwaterloo.swag.mavencrawler.xml.MavenMetadataHandler;
+import ca.uwaterloo.swag.mavencrawler.xml.VersionPomHandler;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.crawler.Page;
@@ -87,25 +90,57 @@ public class MetadataCrawler extends WebCrawler {
 	@Override
 	public void visit(Page page) {
 		
-		if (page.getWebURL().getURL().endsWith("maven-metadata.xml")) {
+		String pageUrl = page.getWebURL().getURL() != null ? page.getWebURL().getURL() : "";
+		
+		if (pageUrl.endsWith("maven-metadata.xml")) {
+
+			URL url = null;
+			MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
 			
 			try {
-				URL url = new URL(page.getWebURL().getURL());
-				MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
+				url = new URL(pageUrl);
 				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 				
 				LoggerHelper.log(logger, Level.INFO, "Parsing maven-metadata.xml...");
 				parser.parse(url.openStream(), metadataHandler);
 				LoggerHelper.log(logger, Level.INFO, "Parsed " + metadataHandler.getMetadata() + ".");
 				
-				metadataHandler.getMetadata().setRepository(url.getProtocol() + "://" + url.getHost());
-				Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoDatabase, logger);
 				
 			} catch (MalformedURLException e) {
 				LoggerHelper.logError(logger, e, "Bad URL: " + page.getWebURL());
 			} catch (ParserConfigurationException | SAXException | IOException e) {
 				LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
 			}
+			finally {
+				metadataHandler.getMetadata().setRepository(url.getProtocol() + "://" + url.getHost());
+				Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoDatabase, logger);
+			}
+		}
+		else if (pageUrl.endsWith(".pom")) {
+
+			URL url = null;
+			VersionPomHandler versionPomHandler = new VersionPomHandler();
+			
+			try {
+				url = new URL(pageUrl);
+				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+				
+				String pomName = pageUrl.substring(pageUrl.lastIndexOf("/"));
+				LoggerHelper.log(logger, Level.INFO, "Parsing " + pomName + "...");
+				parser.parse(url.openStream(), versionPomHandler);
+				LoggerHelper.log(logger, Level.INFO, "Parsed " + versionPomHandler.getVersionPom() + ".");
+				
+				
+			} catch (MalformedURLException e) {
+				LoggerHelper.logError(logger, e, "Bad URL: " + page.getWebURL());
+			} catch (ParserConfigurationException | SAXException | IOException e) {
+				LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
+			}
+			finally {
+				versionPomHandler.getVersionPom().setRepository(url.getProtocol() + "://" + url.getHost());
+				VersionPom.upsertInMongo(Arrays.asList(versionPomHandler.getVersionPom()), mongoDatabase, logger);
+			}
+			
 		}
 		
 	}
