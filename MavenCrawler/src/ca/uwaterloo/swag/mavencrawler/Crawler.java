@@ -1,14 +1,9 @@
 package ca.uwaterloo.swag.mavencrawler;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
@@ -23,7 +18,6 @@ import org.xml.sax.SAXException;
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
-import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import ca.uwaterloo.swag.mavencrawler.pojo.Repository;
 import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
@@ -33,13 +27,11 @@ public class Crawler {
 	
 	private Logger logger;
 	private MongoDBHandler mongoHandler;
-	private String downloadFolder;
 
-	public Crawler(Logger logger, MongoDBHandler handler, String downloadFolder) {
+	public Crawler(Logger logger, MongoDBHandler handler) {
 		super();
 		this.logger = logger;
 		this.mongoHandler = handler;
-		this.downloadFolder = downloadFolder;
 	}
 
 	public Logger getLogger() {
@@ -54,18 +46,10 @@ public class Crawler {
 	public void setMongoHandler(MongoDBHandler mongoHandler) {
 		this.mongoHandler = mongoHandler;
 	}
-	public String getDownloadFolder() {
-		return downloadFolder;
-	}
-	public void setDownloadFolder(String downloadFolder) {
-		this.downloadFolder = downloadFolder;
-	}
 
 	public void crawlMavenURLs(List<String> mavenURLS) {
 		logger.log(Level.INFO, "Crawling " + mavenURLS + "...");
 		crawlMetadataFromMavenRoots(mavenURLS);
-		logger.log(Level.INFO, "Downloading libraries...");
-		downloadLibraries();
 	}
 
 	public void crawlMetadataFromMavenRoots(List<String> mavenRoots) {
@@ -137,92 +121,6 @@ public class Crawler {
 					 archetype.getArtifactId() + "/maven-metadata.xml");
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
-		}
-	}
-
-	public void downloadLibrariesFromMetadata(Metadata metadata) {
-		
-		File libDownloadFolder = new File(this.getDownloadFolder(), metadata.getGroupId() + "." + metadata.getArtifactId());
-		
-		// Check download folder
-		if ((!libDownloadFolder.exists() && !libDownloadFolder.mkdirs()) ||
-			(libDownloadFolder.exists() && !libDownloadFolder.isDirectory())) {
-			LoggerHelper.log(logger, Level.SEVERE, "Error with download folder");
-			return;
-		}
-		
-		for (String version : metadata.getVersions()) {
-			URL url = metadata.findURLForVersion(version);
-			File downloadFile = new File(libDownloadFolder, metadata.buildJARFileNameForVersion(version));
-			
-			boolean success = false;
-			
-			try {
-				LoggerHelper.log(logger, Level.INFO, "Downloading " + url);
-				success = downloadLibFromURLToFile(url, downloadFile);
-			} catch (FileNotFoundException e) {
-				
-				// JAR not found, try AAR
-				try {
-					URL newURL = new URL(url, url.getPath().substring(0, url.getPath().length()-3) + "aar");
-					downloadFile = new File(libDownloadFolder, metadata.buildAARFileNameForVersion(version));
-
-					LoggerHelper.log(logger, Level.INFO, "JAR not found, trying " + newURL);
-					success = downloadLibFromURLToFile(newURL, downloadFile);
-				} catch (MalformedURLException |FileNotFoundException e1) {
-					LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + url);
-				}
-			}
-			
-			if (success) {
-				saveDownloaded(metadata, version, downloadFile);
-			}
-			
-		}
-	}
-
-	private void saveDownloaded(Metadata metadata, String version, File downloadFile) {
-		Downloaded downloaded = new Downloaded(metadata.getGroupId(), 
-											  metadata.getArtifactId(), 
-											  metadata.getRepository(), 
-											  version, 
-											  new Date(), 
-											  downloadFile.getAbsolutePath());
-		Downloaded.upsertInMongo(downloaded, mongoHandler.getMongoDatabase(), logger);
-	}
-
-	private boolean downloadLibFromURLToFile(URL url, File downloadFile) throws FileNotFoundException {
-		boolean success = false;
-		
-		if (downloadFile.exists()) {
-			success = true;
-		}
-		else {
-			try {
-				ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-				FileOutputStream fos = new FileOutputStream(downloadFile);
-		        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-		        fos.close();
-		        rbc.close();
-		        success = true;
-			} 
-			catch (FileNotFoundException e) {
-				throw e;
-			}
-			catch (IOException e) {
-				LoggerHelper.log(logger, Level.SEVERE, "Error downloading " + downloadFile.getName());
-			}
-			
-		}
-		
-		return success;
-	}
-
-	public void downloadLibraries() {
-		List<Metadata> metadataList = Metadata.findAllFromMongo(mongoHandler.getMongoDatabase());
-		
-		for (Metadata metadata : metadataList) {
-			downloadLibrariesFromMetadata(metadata);
 		}
 	}
 	

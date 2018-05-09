@@ -4,11 +4,9 @@ import static ca.uwaterloo.swag.mavencrawler.pojo.Archetype.ARCHETYPE_COLLECTION
 import static ca.uwaterloo.swag.mavencrawler.pojo.Metadata.METADATA_COLLECTION;
 import static ca.uwaterloo.swag.mavencrawler.pojo.Repository.REPOSITORY_COLLECTION;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -29,8 +27,6 @@ import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
-import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
-import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -51,7 +47,6 @@ public class CrawlerTest {
 	private static MongoClient _mongo;
 	private static MongoDBHandler mongoHandler;
 	
-	private File downloadFolder;
 	private MongoDatabase db;
 
 	@BeforeClass
@@ -80,32 +75,12 @@ public class CrawlerTest {
 	@Before
 	public void setUp() throws Exception {
 		db = _mongo.getDatabase("TestDatabase");
-		downloadFolder = new File("tempDownload");
-		assertFalse(downloadFolder.exists());
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		db.drop();
 		db = null;
-		if (downloadFolder.exists()) {
-			assertTrue(deleteRecursive(downloadFolder));
-		}
-	}
-	
-	private boolean deleteRecursive(File file) {
-		
-		// Delete children inside folder
-		if (file.exists() && file.isDirectory()) {
-			Arrays.stream(file.listFiles()).forEach(f -> assertTrue(deleteRecursive(f)));
-		}
-		
-		// Delete empty folder and/or file
-		if (file.exists()) {
-			return file.delete();
-		}
-		
-		return false;
 	}
 
 	@Test
@@ -114,15 +89,13 @@ public class CrawlerTest {
 		// Given
 		Logger logger = Logger.getLogger(this.getClass().getName());
 		MongoDBHandler handler = MongoDBHandler.newInstance(logger);
-		String folder = "folder";
 		
 		// When
-		Crawler crawler = new Crawler(logger, handler, folder);
+		Crawler crawler = new Crawler(logger, handler);
 		
 		// Then
 		assertEquals(logger, crawler.getLogger());
 		assertEquals(handler, crawler.getMongoHandler());
-		assertEquals(folder, crawler.getDownloadFolder());
 	}
 	
 	@Test
@@ -130,7 +103,7 @@ public class CrawlerTest {
 		
 		// Given
 		Date testStart = new Date();
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
         String repoURL = "RepoURL";
 		
 		// When
@@ -211,7 +184,7 @@ public class CrawlerTest {
 		assertEquals(0, metadataCollection.count());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
 		crawler.updateMetadataForArchetype(archetype);
 		
 		// Then
@@ -249,7 +222,7 @@ public class CrawlerTest {
 		assertEquals(0, metadataCollection.count());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
 		crawler.updateMetadataForArchetype(archetype);
 		
 		// Then
@@ -291,150 +264,10 @@ public class CrawlerTest {
 		assertEquals(0, metadataCollection.count());
 		
 		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
+        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler);
 		crawler.updateArchetypes();
 		
 		// Then
 		assertEquals(2, metadataCollection.count());
-	}
-
-	/**
-	 * Testing downloading libraries
-	 * TODO: use mock instead of actual address
-	 */
-	@Test
-	public void testDownloadLibrariesFromMetadata() {
-		
-		// Given
-		Metadata metadata = new Metadata();
-		metadata.setGroupId("br.com.ingenieux");
-		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
-		metadata.setRepository("http://central.maven.org/maven2");
-		metadata.setVersions(Arrays.asList("1.5.0", "1.4.4"));
-		
-		File expectedLibraryFolder = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype");
-		assertFalse(expectedLibraryFolder.exists());
-		
-		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
-		crawler.downloadLibrariesFromMetadata(metadata);
-		
-		// Then
-		assertTrue(downloadFolder.exists());
-		assertTrue(downloadFolder.isDirectory());
-		assertTrue(expectedLibraryFolder.exists());
-		assertTrue(expectedLibraryFolder.isDirectory());
-		assertEquals(1, downloadFolder.list().length);
-		assertEquals(2, expectedLibraryFolder.list().length);
-		
-		File lib1 = new File(expectedLibraryFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
-		File lib2 = new File(expectedLibraryFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.4.4.jar");
-		assertTrue(lib1.exists());
-		assertTrue(lib2.exists());
-	}
-
-	/**
-	 * Testing downloading libraries
-	 * TODO: use mock instead of actual address
-	 */
-	@Test
-	public void testDownloadLibrariesFromMetadataShouldSaveToDB() {
-		
-		// Given
-		Metadata metadata = new Metadata();
-		metadata.setGroupId("br.com.ingenieux");
-		metadata.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
-		metadata.setRepository("http://central.maven.org/maven2");
-		metadata.setVersions(Arrays.asList("1.5.0"));
-		
-		File rootDownloadFolder = new File("tempDownload");
-		MongoCollection<Downloaded> collection = mongoHandler.getMongoDatabase().getCollection(Downloaded.DOWNLOADED_COLLECTION, Downloaded.class);
-		assertEquals(0, collection.count());
-		
-		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, rootDownloadFolder.getAbsolutePath());
-		crawler.downloadLibrariesFromMetadata(metadata);
-		
-		// Then
-		assertEquals(1, collection.count());
-		Downloaded downloaded = collection.find().first();
-		assertEquals(metadata.getGroupId(), downloaded.getGroupId());
-		assertEquals(metadata.getArtifactId(), downloaded.getArtifactId());
-		assertEquals(metadata.getRepository(), downloaded.getRepository());
-		assertEquals(metadata.getVersions().get(0), downloaded.getVersion());
-		assertNotNull(downloaded.getDownloadDate());
-		
-		File expectedLibPath = new File(rootDownloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype/br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
-		assertEquals(expectedLibPath.getAbsolutePath(), downloaded.getDownloadPath());
-	}
-
-	/**
-	 * Testing downloading AAR libraries
-	 * TODO: use mock instead of actual address
-	 */
-	@Test
-	public void testDownloadAARLibrariesFromMetadata() {
-		
-		// Given
-		Metadata metadata = new Metadata();
-		metadata.setGroupId("ch.acra");
-		metadata.setArtifactId("acra");
-		metadata.setRepository("http://central.maven.org/maven2");
-		metadata.setVersions(Arrays.asList("4.9.2"));
-		
-		File rootDownloadFolder = new File("tempDownload");
-		File expectedLibraryFolder = new File(rootDownloadFolder, "ch.acra.acra");
-		
-		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, rootDownloadFolder.getAbsolutePath());
-		crawler.downloadLibrariesFromMetadata(metadata);
-		
-		// Then
-		assertTrue(expectedLibraryFolder.exists());
-		assertTrue(expectedLibraryFolder.isDirectory());
-		assertEquals(1, expectedLibraryFolder.list().length);
-		
-		File lib1 = new File(expectedLibraryFolder, "ch.acra.acra-4.9.2.aar");
-		assertTrue(lib1.exists());
-	}
-	
-	@Test
-	public void testDownloadAllLibraries() {
-
-		// Given
-		Metadata metadata1 = new Metadata();
-		metadata1.setGroupId("br.com.ingenieux");
-		metadata1.setArtifactId("elasticbeanstalk-docker-dropwizard-webapp-archetype");
-		metadata1.setRepository("http://central.maven.org/maven2");
-		metadata1.setVersions(Arrays.asList("1.5.0"));
-		Metadata.upsertInMongo(metadata1, mongoHandler.getMongoDatabase(), null);
-
-		Metadata metadata2 = new Metadata();
-		metadata2.setGroupId("args4j");
-		metadata2.setArtifactId("args4j-tools");
-		metadata2.setRepository("http://central.maven.org/maven2");
-		metadata2.setVersions(Arrays.asList("2.33"));
-		Metadata.upsertInMongo(metadata2, mongoHandler.getMongoDatabase(), null);
-		
-		downloadFolder = new File("tempDownload");
-		
-		// When
-        Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
-		crawler.downloadLibraries();
-		
-		// Then
-		assertTrue(downloadFolder.exists());
-		assertTrue(downloadFolder.isDirectory());
-		assertEquals(2, downloadFolder.list().length);
-
-		File lib1 = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype/br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
-		File lib2 = new File(downloadFolder, "args4j.args4j-tools/args4j.args4j-tools-2.33.jar");
-		assertTrue(lib1.exists());
-		assertTrue(lib2.exists());
-
-		assertTrue(lib1.delete());
-		assertTrue(lib2.delete());
-		Arrays.stream(downloadFolder.listFiles()).forEach(f -> assertTrue(f.delete()));
-		assertTrue(downloadFolder.delete());
 	}
 }

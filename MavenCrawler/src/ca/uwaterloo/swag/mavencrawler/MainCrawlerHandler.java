@@ -15,7 +15,6 @@ public class MainCrawlerHandler {
 	
 	private static final String DEFAULT_CONFIG_FILE = "mavencrawler.conf"; 
 	private static final String DEFAULT_URLS_LIST = "mavenURLs.list"; 
-	private static final String DOWNLOAD_FOLDER_PROPERTY = "DOWNLOAD_FOLDER";
 
 	public static void main(String[] args) {
 		
@@ -35,7 +34,7 @@ public class MainCrawlerHandler {
 		List<String> mavenURLs = StringHelper.getStringsFromFile(urlsFile.getAbsolutePath());
 		logger.log(Level.INFO, "Crawling " + mavenURLs.size() + " maven URLs.");
 		MongoDBHandler persister = MongoDBHandler.newInstance(logger, properties);
-		Crawler crawler = new Crawler(logger, persister, properties.getProperty(DOWNLOAD_FOLDER_PROPERTY));
+		Crawler crawler = new Crawler(logger, persister);
 		crawler.crawlMavenURLs(mavenURLs);
 	}
 
