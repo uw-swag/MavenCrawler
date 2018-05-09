@@ -17,6 +17,7 @@ public class VersionPomHandler extends DefaultHandler {
 	
 	private enum ElementType {
 		PROJECT,
+		PARENT,
 		GROUPID,
 		ARTIFACTID,
 		NAME,
@@ -74,14 +75,36 @@ public class VersionPomHandler extends DefaultHandler {
 		
 		switch (currentElement) {
 		case GROUPID:
-			if (elementStack.peek() == ElementType.PROJECT) {
+			
+			switch (elementStack.peek()) {
+			case PROJECT:
 				versionPom.setGroupId(value.trim());
+				break;
+			case PARENT:
+				if (versionPom.getGroupId() == null) {
+					versionPom.setGroupId(value.trim());
+				}
+				break;
+			default:
+				break;
 			}
+			
 			break;
 		case ARTIFACTID:
-			if (elementStack.peek() == ElementType.PROJECT) {
+			
+			switch (elementStack.peek()) {
+			case PROJECT:
 				versionPom.setArtifactId(value);
+				break;
+			case PARENT:
+				if (versionPom.getArtifactId() == null) {
+					versionPom.setArtifactId(value);
+				}
+				break;
+			default:
+				break;
 			}
+			
 			break;
 		case NAME:
 			if (elementStack.peek() == ElementType.PROJECT) {
@@ -89,9 +112,20 @@ public class VersionPomHandler extends DefaultHandler {
 			}
 			break;
 		case VERSION:
-			if (elementStack.peek() == ElementType.PROJECT) {
+
+			switch (elementStack.peek()) {
+			case PROJECT:
 				versionPom.setVersion(value);
+				break;
+			case PARENT:
+				if (versionPom.getVersion() == null) {
+					versionPom.setVersion(value);
+				}
+				break;
+			default:
+				break;
 			}
+			
 			break;
 		case DESCRIPTION:
 			if (elementStack.peek() == ElementType.PROJECT) {

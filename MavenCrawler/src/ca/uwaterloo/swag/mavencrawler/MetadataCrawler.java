@@ -101,9 +101,9 @@ public class MetadataCrawler extends WebCrawler {
 				url = new URL(pageUrl);
 				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 				
-				LoggerHelper.log(logger, Level.INFO, "Parsing maven-metadata.xml...");
+				LoggerHelper.log(logger, Level.INFO, "Parsing METADATA " + pageUrl);
 				parser.parse(url.openStream(), metadataHandler);
-				LoggerHelper.log(logger, Level.INFO, "Parsed " + metadataHandler.getMetadata() + ".");
+				LoggerHelper.log(logger, Level.INFO, "Parsed " + metadataHandler.getMetadata());
 				
 				
 			} catch (MalformedURLException e) {
@@ -126,9 +126,9 @@ public class MetadataCrawler extends WebCrawler {
 				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 				
 				String pomName = pageUrl.substring(pageUrl.lastIndexOf("/"));
-				LoggerHelper.log(logger, Level.INFO, "Parsing " + pomName + "...");
+				LoggerHelper.log(logger, Level.INFO, "Parsing POM " + pomName);
 				parser.parse(url.openStream(), versionPomHandler);
-				LoggerHelper.log(logger, Level.INFO, "Parsed " + versionPomHandler.getVersionPom() + ".");
+				LoggerHelper.log(logger, Level.INFO, "Parsed " + versionPomHandler.getVersionPom());
 				
 				
 			} catch (MalformedURLException e) {

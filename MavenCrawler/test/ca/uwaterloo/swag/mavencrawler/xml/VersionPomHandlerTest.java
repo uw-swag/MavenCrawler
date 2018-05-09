@@ -39,10 +39,10 @@ public class VersionPomHandlerTest {
 	}
 
 	@Test
-	public void testParsingVersionPom() {
+	public void testParsingStandardVersionPom() {
 		
 		// Given
-		InputStream stream = this.getClass().getResourceAsStream("../versionpom-example.pom");
+		InputStream stream = this.getClass().getResourceAsStream("../log4j-1.2.16.pom");
 		
 		// When
 		try {
@@ -60,6 +60,25 @@ public class VersionPomHandlerTest {
 		assertEquals("http://logging.apache.org/log4j/1.2/", metadata.getProjectUrl());
 		assertEquals("scm:svn:http://svn.apache.org/repos/asf/logging/log4j/tags/v1_2_16", metadata.getScmConnection());
 		assertEquals("http://svn.apache.org/viewvc/logging/log4j/tags/v1_2_16", metadata.getScmUrl());
+	}
+
+	@Test
+	public void testParsingVersionPomWithParent() {
+		
+		// Given
+		InputStream stream = this.getClass().getResourceAsStream("../cglib-3.2.2.pom");
+		
+		// When
+		try {
+			parser.parse(stream, handler);
+		} catch (Exception e) {}
+		
+		// Then
+		VersionPom metadata = handler.getVersionPom();
+
+		assertEquals("cglib", metadata.getGroupId());
+		assertEquals("cglib", metadata.getArtifactId());
+		assertEquals("3.2.2", metadata.getVersion());
 	}
 
 }
