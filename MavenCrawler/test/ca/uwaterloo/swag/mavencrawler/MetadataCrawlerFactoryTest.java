@@ -2,6 +2,8 @@ package ca.uwaterloo.swag.mavencrawler;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.junit.After;
@@ -69,8 +71,8 @@ public class MetadataCrawlerFactoryTest {
 		// Given
 		Logger logger = Logger.getLogger("newLogger");
 		MongoDatabase mongoDatabase = mongoHandler.getMongoDatabase();
-		String seedURL = "http://seed.com";
-		MetadataCrawlerFactory factory = new MetadataCrawlerFactory(logger, mongoDatabase, seedURL);
+		List<String> seedURLs = Arrays.asList("http://seed.com");
+		MetadataCrawlerFactory factory = new MetadataCrawlerFactory(logger, mongoDatabase, seedURLs);
 
 		// When
 		MetadataCrawler crawler = factory.newInstance();
@@ -78,7 +80,7 @@ public class MetadataCrawlerFactoryTest {
 		// Then
 		assertEquals(logger, crawler.getLogger()); 
 		assertEquals(mongoDatabase, crawler.getMongoDatabase()); 
-		assertEquals(seedURL, crawler.getSeedURL()); 
+		assertEquals(seedURLs, crawler.getSeedURLs()); 
 	}
 
 }

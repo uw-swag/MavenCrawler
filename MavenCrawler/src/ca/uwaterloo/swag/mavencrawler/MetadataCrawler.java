@@ -39,13 +39,13 @@ public class MetadataCrawler extends WebCrawler {
 
 	private Logger logger;
 	private MongoDatabase mongoDatabase;
-	private String seedURL;
+	private List<String> seedURLs;
 	
-	public MetadataCrawler(Logger logger, MongoDatabase mongoDatabase, String seedURL) {
+	public MetadataCrawler(Logger logger, MongoDatabase mongoDatabase, List<String> seedURLs) {
 		super();
 		this.logger = logger;
 		this.mongoDatabase = mongoDatabase;
-		this.seedURL = seedURL;
+		this.seedURLs = seedURLs;
 	}
 	
 	public Logger getLogger() {
@@ -64,12 +64,12 @@ public class MetadataCrawler extends WebCrawler {
 		this.mongoDatabase = mongoDatabase;
 	}
 	
-	public String getSeedURL() {
-		return seedURL;
+	public List<String> getSeedURLs() {
+		return seedURLs;
 	}
 
-	public void setSeedURL(String seedURL) {
-		this.seedURL = seedURL;
+	public void setSeedURL(List<String> seedURLs) {
+		this.seedURLs = seedURLs;
 	}
 
 	@Override
@@ -104,54 +104,70 @@ public class MetadataCrawler extends WebCrawler {
 		String pageUrl = page.getWebURL().getURL() != null ? page.getWebURL().getURL() : "";
 		
 		if (pageUrl.endsWith("maven-metadata.xml")) {
-
-			MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
-			
-			try {
-				URL url = new URL(pageUrl);
-				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
-				
-				LoggerHelper.log(logger, Level.INFO, "Parsing METADATA " + pageUrl);
-				parser.parse(url.openStream(), metadataHandler);
-				LoggerHelper.log(logger, Level.INFO, "Parsed " + metadataHandler.getMetadata());
-				
-				
-			} catch (MalformedURLException e) {
-				LoggerHelper.logError(logger, e, "Bad URL: " + page.getWebURL());
-			} catch (ParserConfigurationException | SAXException | IOException e) {
-				LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
-			}
-			finally {
-				metadataHandler.getMetadata().setRepository(getSeedURL());
-				Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoDatabase, logger);
-			}
+			handleMetadata(pageUrl);
 		}
 		else if (pageUrl.endsWith(".pom")) {
-
-			VersionPomHandler versionPomHandler = new VersionPomHandler();
-			
-			try {
-				URL url = new URL(pageUrl);
-				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
-				
-				String pomName = pageUrl.substring(pageUrl.lastIndexOf("/"));
-				LoggerHelper.log(logger, Level.INFO, "Parsing POM " + pomName);
-				parser.parse(url.openStream(), versionPomHandler);
-				LoggerHelper.log(logger, Level.INFO, "Parsed " + versionPomHandler.getVersionPom());
-				
-				
-			} catch (MalformedURLException e) {
-				LoggerHelper.logError(logger, e, "Bad URL: " + page.getWebURL());
-			} catch (ParserConfigurationException | SAXException | IOException e) {
-				LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
-			}
-			finally {
-				versionPomHandler.getVersionPom().setRepository(getSeedURL());
-				VersionPom.upsertInMongo(Arrays.asList(versionPomHandler.getVersionPom()), mongoDatabase, logger);
-			}
-			
+			handlePom(pageUrl);
 		}
 		
+	}
+
+	private void handleMetadata(String pageUrl) {
+		MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
+		
+		try {
+			URL url = new URL(pageUrl);
+			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+			
+			LoggerHelper.log(logger, Level.INFO, "Parsing METADATA " + pageUrl);
+			parser.parse(url.openStream(), metadataHandler);
+			LoggerHelper.log(logger, Level.INFO, "Parsed " + metadataHandler.getMetadata());
+			
+		} catch (MalformedURLException e) {
+			LoggerHelper.logError(logger, e, "Bad URL: " + pageUrl);
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
+		}
+		finally {
+			metadataHandler.getMetadata().setRepository(getSeedURL(pageUrl));
+			Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoDatabase, logger);
+		}
+	}
+
+	private void handlePom(String pageUrl) {
+		VersionPomHandler versionPomHandler = new VersionPomHandler();
+		
+		try {
+			URL url = new URL(pageUrl);
+			SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
+			
+			String pomName = pageUrl.substring(pageUrl.lastIndexOf("/"));
+			LoggerHelper.log(logger, Level.INFO, "Parsing POM " + pomName);
+			parser.parse(url.openStream(), versionPomHandler);
+			LoggerHelper.log(logger, Level.INFO, "Parsed " + versionPomHandler.getVersionPom());
+			
+		} catch (MalformedURLException e) {
+			LoggerHelper.logError(logger, e, "Bad URL: " + pageUrl);
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
+		}
+		finally {
+			versionPomHandler.getVersionPom().setRepository(getSeedURL(pageUrl));
+			VersionPom.upsertInMongo(Arrays.asList(versionPomHandler.getVersionPom()), mongoDatabase, logger);
+		}
+	}
+	
+	private String getSeedURL(String pageURL) {
+		
+		// Check all seeds as multiple parallel crawlers might end up crawling
+		// pages from different seeds
+		for (String seedURL : seedURLs) {
+			if (pageURL.startsWith(seedURL)) {
+				return seedURL;
+			}
+		}
+		
+		return "";
 	}
 
 	public static void crawlMavenRoots(List<String> mavenRoots, MongoDatabase mongoDatabase, Logger logger) {
@@ -187,7 +203,7 @@ public class MetadataCrawler extends WebCrawler {
 		for (int i = 0; i < controllers.size(); i++) {
 			CrawlController controller = controllers.get(i);
 			String seedURL = mavenRoots.get(i);
-    		MetadataCrawlerFactory metadataCrawlerFactory = new MetadataCrawlerFactory(logger, mongoDatabase, seedURL);
+    		MetadataCrawlerFactory metadataCrawlerFactory = new MetadataCrawlerFactory(logger, mongoDatabase, mavenRoots);
 
 			/*
 			 * For each crawl, you need to add some seed urls. These are the first
@@ -205,14 +221,6 @@ public class MetadataCrawler extends WebCrawler {
 			controller.waitUntilFinish();
 		}
 		
-		
-        
-		/*
-		 * Start the crawl. This is a blocking operation, meaning that your code
-		 * will reach the line after this only when crawling is finished.
-		 */
-//		MetadataCrawlerFactory metadataCrawlerFactory = new MetadataCrawlerFactory(logger, mongoDatabase);
-//		controller.start(metadataCrawlerFactory, numberOfCrawlers);
 	}
 
 }

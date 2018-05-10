@@ -75,7 +75,7 @@ public class MetadataCrawlerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		this.crawler = new MetadataCrawler(null, mongoHandler.getMongoDatabase(), "http://central.maven.org/maven2");
+		this.crawler = new MetadataCrawler(null, mongoHandler.getMongoDatabase(), Arrays.asList("http://central.maven.org/maven2"));
 		db = _mongo.getDatabase("TestDatabase");
 		tempCrawlerFolder = new File(System.getProperty("user.dir"), "crawlerTemp");
 		assertTrue(TestHelper.deleteRecursive(tempCrawlerFolder));
