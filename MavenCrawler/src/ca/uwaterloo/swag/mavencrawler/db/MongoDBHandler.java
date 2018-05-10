@@ -1,7 +1,5 @@
 package ca.uwaterloo.swag.mavencrawler.db;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -203,9 +201,9 @@ public class MongoDBHandler {
 		boolean success = false;
 
 		// Create Credentials 
-		List<MongoCredential> credentials = new ArrayList<MongoCredential>();
+		MongoCredential credential = null;
 		if (isAuthEnabled()) {
-			credentials.add(MongoCredential.createCredential(getUsername(), getAuthDatabase(), getPassword().toCharArray()));
+			credential = MongoCredential.createCredential(getUsername(), getAuthDatabase(), getPassword().toCharArray());
 		}
 		
 		// Register classes
@@ -218,15 +216,17 @@ public class MongoDBHandler {
 				.build();
 		
 		// Creating a Mongo client 
-		mongo = new MongoClient(new ServerAddress(getHost(), getPort()), credentials, options); 
+		mongo = (credential == null) ? 
+				new MongoClient(new ServerAddress(getHost(), getPort()), options) :
+				new MongoClient(new ServerAddress(getHost(), getPort()), credential, options); 
 		success = isConnected();
 		
 		if (success) {
 			checkCollectionsIndexes();
-			logger.log(Level.INFO, "Connected to the database successfully");
+			LoggerHelper.log(logger, Level.INFO, "Connected to the database successfully");
 		}
 		else {
-			logger.log(Level.WARNING, "Failed connecting to database");
+			LoggerHelper.log(logger, Level.WARNING, "Failed connecting to database");
 			disconnect();
 		}
 		
@@ -249,7 +249,7 @@ public class MongoDBHandler {
 		try {
 			// This should throw an exception when connection is closed
 			mongo.getDatabase(getAuthDatabase()).runCommand(new BsonDocument("ping", new BsonInt32(1)));
-			logger.log(Level.WARNING, "Failed closing connection to database");
+			LoggerHelper.log(logger, Level.WARNING, "Failed closing connection to database");
 		} catch (Exception e) {
 			success = true;
 		}
