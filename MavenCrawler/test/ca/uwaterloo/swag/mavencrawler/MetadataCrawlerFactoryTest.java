@@ -69,7 +69,8 @@ public class MetadataCrawlerFactoryTest {
 		// Given
 		Logger logger = Logger.getLogger("newLogger");
 		MongoDatabase mongoDatabase = mongoHandler.getMongoDatabase();
-		MetadataCrawlerFactory factory = new MetadataCrawlerFactory(logger, mongoDatabase);
+		String seedURL = "http://seed.com";
+		MetadataCrawlerFactory factory = new MetadataCrawlerFactory(logger, mongoDatabase, seedURL);
 
 		// When
 		MetadataCrawler crawler = factory.newInstance();
@@ -77,6 +78,7 @@ public class MetadataCrawlerFactoryTest {
 		// Then
 		assertEquals(logger, crawler.getLogger()); 
 		assertEquals(mongoDatabase, crawler.getMongoDatabase()); 
+		assertEquals(seedURL, crawler.getSeedURL()); 
 	}
 
 }

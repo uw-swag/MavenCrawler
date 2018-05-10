@@ -6,9 +6,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.bson.Document;
 import org.junit.After;
@@ -22,6 +22,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
+import ca.uwaterloo.swag.mavencrawler.helpers.TestHelper;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -44,8 +45,9 @@ public class MetadataCrawlerTest {
 	private static MongoClient _mongo;
 	private static MongoDBHandler mongoHandler;
 
-	private MetadataCrawler crawler;
 	private MongoDatabase db;
+	private MetadataCrawler crawler;
+	private File tempCrawlerFolder;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -56,7 +58,7 @@ public class MetadataCrawlerTest {
 				.build());
 		_mongod = _mongodExe.start();
 
-		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(MetadataCrawlerTest.class.getName()));
+		mongoHandler = MongoDBHandler.newInstance(null);
 		mongoHandler.setHost("localhost");
 		mongoHandler.setPort(12345);
 		mongoHandler.setAuthEnabled(false);
@@ -73,16 +75,19 @@ public class MetadataCrawlerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		this.crawler = new MetadataCrawler(null, mongoHandler.getMongoDatabase());
+		this.crawler = new MetadataCrawler(null, mongoHandler.getMongoDatabase(), "http://central.maven.org/maven2");
 		db = _mongo.getDatabase("TestDatabase");
+		tempCrawlerFolder = new File(System.getProperty("user.dir"), "crawlerTemp");
+		assertTrue(TestHelper.deleteRecursive(tempCrawlerFolder));
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		db.drop();
 		db = null;
+		assertTrue(TestHelper.deleteRecursive(tempCrawlerFolder));
 	}
-
+	
 	@Test
 	public void testShouldVisitMustFilterExtensions() {
 
@@ -198,7 +203,7 @@ public class MetadataCrawlerTest {
 		assertEquals(1, metadataCollection.count());
 		Document metadata = metadataCollection.find().first();
 		assertEquals(metadata.get("groupId"), "activecluster");
-		assertEquals(metadata.get("repository"), "http://central.maven.org");
+		assertEquals(metadata.get("repository"), "http://central.maven.org/maven2");
 	}
 
 
@@ -220,7 +225,7 @@ public class MetadataCrawlerTest {
 		assertEquals(1, versionPomsCollection.count());
 		Document metadata = versionPomsCollection.find().first();
 		assertEquals(metadata.get("groupId"), "log4j");
-		assertEquals(metadata.get("repository"), "http://central.maven.org");
+		assertEquals(metadata.get("repository"), "http://central.maven.org/maven2");
 	}
 
 	// JCenter links have a "/:" before folder names (maybe to avoid crawling?)

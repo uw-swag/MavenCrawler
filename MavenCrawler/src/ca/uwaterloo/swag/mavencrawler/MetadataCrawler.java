@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,11 +39,13 @@ public class MetadataCrawler extends WebCrawler {
 
 	private Logger logger;
 	private MongoDatabase mongoDatabase;
+	private String seedURL;
 	
-	public MetadataCrawler(Logger logger, MongoDatabase mongoDatabase) {
+	public MetadataCrawler(Logger logger, MongoDatabase mongoDatabase, String seedURL) {
 		super();
 		this.logger = logger;
 		this.mongoDatabase = mongoDatabase;
+		this.seedURL = seedURL;
 	}
 	
 	public Logger getLogger() {
@@ -61,6 +64,14 @@ public class MetadataCrawler extends WebCrawler {
 		this.mongoDatabase = mongoDatabase;
 	}
 	
+	public String getSeedURL() {
+		return seedURL;
+	}
+
+	public void setSeedURL(String seedURL) {
+		this.seedURL = seedURL;
+	}
+
 	@Override
 	protected WebURL handleUrlBeforeProcess(WebURL curURL) {
 		
@@ -94,11 +105,10 @@ public class MetadataCrawler extends WebCrawler {
 		
 		if (pageUrl.endsWith("maven-metadata.xml")) {
 
-			URL url = null;
 			MavenMetadataHandler metadataHandler = new MavenMetadataHandler();
 			
 			try {
-				url = new URL(pageUrl);
+				URL url = new URL(pageUrl);
 				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 				
 				LoggerHelper.log(logger, Level.INFO, "Parsing METADATA " + pageUrl);
@@ -112,17 +122,16 @@ public class MetadataCrawler extends WebCrawler {
 				LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
 			}
 			finally {
-				metadataHandler.getMetadata().setRepository(url.getProtocol() + "://" + url.getHost());
+				metadataHandler.getMetadata().setRepository(getSeedURL());
 				Metadata.upsertInMongo(metadataHandler.getMetadata(), mongoDatabase, logger);
 			}
 		}
 		else if (pageUrl.endsWith(".pom")) {
 
-			URL url = null;
 			VersionPomHandler versionPomHandler = new VersionPomHandler();
 			
 			try {
-				url = new URL(pageUrl);
+				URL url = new URL(pageUrl);
 				SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
 				
 				String pomName = pageUrl.substring(pageUrl.lastIndexOf("/"));
@@ -137,7 +146,7 @@ public class MetadataCrawler extends WebCrawler {
 				LoggerHelper.logError(logger, e, "Error parsing maven-metadata.xml.");
 			}
 			finally {
-				versionPomHandler.getVersionPom().setRepository(url.getProtocol() + "://" + url.getHost());
+				versionPomHandler.getVersionPom().setRepository(getSeedURL());
 				VersionPom.upsertInMongo(Arrays.asList(versionPomHandler.getVersionPom()), mongoDatabase, logger);
 			}
 			
@@ -162,29 +171,48 @@ public class MetadataCrawler extends WebCrawler {
 		RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
 		robotstxtConfig.setEnabled(false);
 		RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
-		CrawlController controller;
+		List<CrawlController> controllers = new ArrayList<>(mavenRoots.size());
 		try {
-			controller = new CrawlController(config, pageFetcher, robotstxtServer);
+			
+			// Create one controller for each Maven root
+			for (int i = 0; i < mavenRoots.size(); i++) {
+				controllers.add(new CrawlController(config, pageFetcher, robotstxtServer));
+			}
+			
 		} catch (Exception e) {
 			LoggerHelper.log(logger, Level.SEVERE, "Could not create temp folder for MetadataCrawler");
 			return;
 		}
 
-		/*
-		 * For each crawl, you need to add some seed urls. These are the first
-		 * URLs that are fetched and then the crawler starts following links
-		 * which are found in these pages
-		 */
-        for (String mavenRoot : mavenRoots) {
-            controller.addSeed(mavenRoot);
-        }
+		for (int i = 0; i < controllers.size(); i++) {
+			CrawlController controller = controllers.get(i);
+			String seedURL = mavenRoots.get(i);
+    		MetadataCrawlerFactory metadataCrawlerFactory = new MetadataCrawlerFactory(logger, mongoDatabase, seedURL);
+
+			/*
+			 * For each crawl, you need to add some seed urls. These are the first
+			 * URLs that are fetched and then the crawler starts following links
+			 * which are found in these pages
+			 */
+			controller.addSeed(seedURL);
+
+    		// Start the crawl asynchronously.
+    		controller.startNonBlocking(metadataCrawlerFactory, numberOfCrawlers);
+		}
+		
+		// Wait until all controllers are done
+		for (CrawlController controller : controllers) {
+			controller.waitUntilFinish();
+		}
+		
+		
         
 		/*
 		 * Start the crawl. This is a blocking operation, meaning that your code
 		 * will reach the line after this only when crawling is finished.
 		 */
-		MetadataCrawlerFactory metadataCrawlerFactory = new MetadataCrawlerFactory(logger, mongoDatabase);
-		controller.start(metadataCrawlerFactory, numberOfCrawlers);
+//		MetadataCrawlerFactory metadataCrawlerFactory = new MetadataCrawlerFactory(logger, mongoDatabase);
+//		controller.start(metadataCrawlerFactory, numberOfCrawlers);
 	}
 
 }

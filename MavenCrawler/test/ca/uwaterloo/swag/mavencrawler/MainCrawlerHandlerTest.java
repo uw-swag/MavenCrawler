@@ -1,21 +1,25 @@
 package ca.uwaterloo.swag.mavencrawler;
 
-import static org.junit.Assert.assertFalse;
+import static ca.uwaterloo.swag.mavencrawler.pojo.Metadata.METADATA_COLLECTION;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.logging.Logger;
+import java.net.URISyntaxException;
 
+import org.bson.Document;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
+import ca.uwaterloo.swag.mavencrawler.helpers.TestHelper;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -47,7 +51,7 @@ public class MainCrawlerHandlerTest {
 				.build());
 		_mongod = _mongodExe.start();
 
-		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(MainCrawlerHandlerTest.class.getName()));
+		mongoHandler = MongoDBHandler.newInstance(null);
 		mongoHandler.setHost("localhost");
 		mongoHandler.setPort(12345);
 		mongoHandler.setAuthEnabled(false);
@@ -66,29 +70,14 @@ public class MainCrawlerHandlerTest {
 	public void setUp() throws Exception {
 		db = _mongo.getDatabase("TestDatabase");
 		tempCrawlerFolder = new File(System.getProperty("user.dir"), "crawlerTemp");
-		assertFalse(tempCrawlerFolder.exists());
+		assertTrue(TestHelper.deleteRecursive(tempCrawlerFolder));
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		db.drop();
 		db = null;
-		assertTrue(deleteRecursive(tempCrawlerFolder));
-	}
-
-	private boolean deleteRecursive(File file) {
-		
-		// Delete children inside folder
-		if (file.exists() && file.isDirectory()) {
-			Arrays.stream(file.listFiles()).forEach(f -> assertTrue(deleteRecursive(f)));
-		}
-		
-		// Delete empty folder and/or file
-		if (file.exists()) {
-			return file.delete();
-		}
-		
-		return true;
+		assertTrue(TestHelper.deleteRecursive(tempCrawlerFolder));
 	}
 	
 	/**

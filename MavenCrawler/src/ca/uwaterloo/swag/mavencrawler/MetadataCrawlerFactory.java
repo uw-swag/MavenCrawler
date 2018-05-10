@@ -10,16 +10,19 @@ public class MetadataCrawlerFactory implements WebCrawlerFactory<MetadataCrawler
 	
 	private Logger logger;
 	private MongoDatabase mongoDatabase;
+	private String seedURL;
 
-	public MetadataCrawlerFactory(Logger logger, MongoDatabase mongoDatabase) {
+	public MetadataCrawlerFactory(Logger logger, MongoDatabase mongoDatabase, String seedURL) {
 		super();
 		this.logger = logger;
 		this.mongoDatabase = mongoDatabase;
+		this.seedURL = seedURL;
 	}
+
 
 	@Override
 	public MetadataCrawler newInstance() throws Exception {
-		return new MetadataCrawler(logger, mongoDatabase);
+		return new MetadataCrawler(logger, mongoDatabase, seedURL);
 	}
 
 }

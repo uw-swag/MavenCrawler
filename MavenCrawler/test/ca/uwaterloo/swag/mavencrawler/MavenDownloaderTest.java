@@ -20,6 +20,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
+import ca.uwaterloo.swag.mavencrawler.helpers.TestHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -73,7 +74,7 @@ public class MavenDownloaderTest {
 	public void setUp() throws Exception {
 		db = _mongo.getDatabase("TestDatabase");
 		downloadFolder = new File("tempDownload");
-		assertFalse(downloadFolder.exists());
+		assertTrue(TestHelper.deleteRecursive(downloadFolder));
 		downloader = new MavenDownloader(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
 	}
 
@@ -81,22 +82,7 @@ public class MavenDownloaderTest {
 	public void tearDown() throws Exception {
 		db.drop();
 		db = null;
-		assertTrue(deleteRecursive(downloadFolder));
-	}
-
-	private boolean deleteRecursive(File file) {
-		
-		// Delete children inside folder
-		if (file.exists() && file.isDirectory()) {
-			Arrays.stream(file.listFiles()).forEach(f -> assertTrue(deleteRecursive(f)));
-		}
-		
-		// Delete empty folder and/or file
-		if (file.exists()) {
-			return file.delete();
-		}
-		
-		return true;
+		assertTrue(TestHelper.deleteRecursive(downloadFolder));
 	}
 
 	/**
