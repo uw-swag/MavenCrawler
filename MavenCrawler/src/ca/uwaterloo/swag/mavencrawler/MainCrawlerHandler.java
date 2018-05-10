@@ -22,6 +22,10 @@ public class MainCrawlerHandler {
 		File configFile = new File(DEFAULT_CONFIG_FILE);
 		File urlsFile = new File(DEFAULT_URLS_LIST);
 		
+		startCrawling(configFile, urlsFile, logger);
+	}
+
+	protected static void startCrawling(File configFile, File urlsFile, Logger logger) {
 		Properties properties = new Properties();
 		try {
 			properties.load(new FileInputStream(configFile));
@@ -32,10 +36,9 @@ public class MainCrawlerHandler {
 		}
 		
 		List<String> mavenURLs = StringHelper.getStringsFromFile(urlsFile.getAbsolutePath());
-		logger.log(Level.INFO, "Crawling " + mavenURLs.size() + " maven URLs.");
+		LoggerHelper.log(logger, Level.INFO, "Crawling " + mavenURLs.size() + " maven URLs.");
 		MongoDBHandler persister = MongoDBHandler.newInstance(logger, properties);
-		Crawler crawler = new Crawler(logger, persister);
-		crawler.crawlMavenURLs(mavenURLs);
+		MetadataCrawler.crawlMavenRoots(mavenURLs, persister.getMongoDatabase(), logger);
 	}
 
 }

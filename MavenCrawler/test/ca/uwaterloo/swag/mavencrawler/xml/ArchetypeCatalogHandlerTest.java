@@ -1,6 +1,7 @@
 package ca.uwaterloo.swag.mavencrawler.xml;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +18,6 @@ import org.junit.Test;
 import org.xml.sax.SAXException;
 
 import ca.uwaterloo.swag.mavencrawler.pojo.Archetype;
-import ca.uwaterloo.swag.mavencrawler.xml.ArchetypeCatalogHandler;
 
 public class ArchetypeCatalogHandlerTest {
 

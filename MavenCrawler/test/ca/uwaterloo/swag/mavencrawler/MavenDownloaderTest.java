@@ -1,6 +1,9 @@
 package ca.uwaterloo.swag.mavencrawler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Arrays;
@@ -51,7 +54,7 @@ public class MavenDownloaderTest {
 				.build());
 		_mongod = _mongodExe.start();
 
-		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(CrawlerTest.class.getName()));
+		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(MavenDownloaderTest.class.getName()));
 		mongoHandler.setHost("localhost");
 		mongoHandler.setPort(12345);
 		mongoHandler.setAuthEnabled(false);
@@ -78,9 +81,7 @@ public class MavenDownloaderTest {
 	public void tearDown() throws Exception {
 		db.drop();
 		db = null;
-		if (downloadFolder.exists()) {
-			assertTrue(deleteRecursive(downloadFolder));
-		}
+		assertTrue(deleteRecursive(downloadFolder));
 	}
 
 	private boolean deleteRecursive(File file) {
@@ -95,7 +96,7 @@ public class MavenDownloaderTest {
 			return file.delete();
 		}
 		
-		return false;
+		return true;
 	}
 
 	/**

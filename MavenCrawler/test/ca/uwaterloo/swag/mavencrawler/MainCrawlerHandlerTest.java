@@ -1,9 +1,16 @@
 package ca.uwaterloo.swag.mavencrawler;
 
+import static ca.uwaterloo.swag.mavencrawler.pojo.Metadata.METADATA_COLLECTION;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
+import org.bson.Document;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -11,6 +18,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
@@ -22,7 +30,7 @@ import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.runtime.Network;
 
-public class CrawlerTest {
+public class MainCrawlerHandlerTest {
 	
 	/**
 	 * please store Starter or RuntimeConfig in a static final field
@@ -35,6 +43,7 @@ public class CrawlerTest {
 	private static MongoDBHandler mongoHandler;
 	
 	private MongoDatabase db;
+	private File tempCrawlerFolder;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -44,7 +53,7 @@ public class CrawlerTest {
 				.build());
 		_mongod = _mongodExe.start();
 
-		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(CrawlerTest.class.getName()));
+		mongoHandler = MongoDBHandler.newInstance(Logger.getLogger(MainCrawlerHandlerTest.class.getName()));
 		mongoHandler.setHost("localhost");
 		mongoHandler.setPort(12345);
 		mongoHandler.setAuthEnabled(false);
@@ -62,46 +71,53 @@ public class CrawlerTest {
 	@Before
 	public void setUp() throws Exception {
 		db = _mongo.getDatabase("TestDatabase");
+		tempCrawlerFolder = new File(System.getProperty("user.dir"), "crawlerTemp");
+		assertFalse(tempCrawlerFolder.exists());
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		db.drop();
 		db = null;
+		assertTrue(deleteRecursive(tempCrawlerFolder));
 	}
 
-	@Test
-	public void testConstructor() {
+	private boolean deleteRecursive(File file) {
 		
-		// Given
-		Logger logger = Logger.getLogger(this.getClass().getName());
-		MongoDBHandler handler = MongoDBHandler.newInstance(logger);
+		// Delete children inside folder
+		if (file.exists() && file.isDirectory()) {
+			Arrays.stream(file.listFiles()).forEach(f -> assertTrue(deleteRecursive(f)));
+		}
 		
-		// When
-		Crawler crawler = new Crawler(logger, handler);
+		// Delete empty folder and/or file
+		if (file.exists()) {
+			return file.delete();
+		}
 		
-		// Then
-		assertEquals(logger, crawler.getLogger());
-		assertEquals(handler, crawler.getMongoHandler());
+		return false;
 	}
-
+	
 	/**
 	 * Helper test to crawl multiple metadata from Maven Central
 	 * TODO: use mock instead of actual address
+	 * @throws URISyntaxException 
 	 */
-//	@Test
-//	public void testCrawlMetadataFromMavenRoots() {
-//
-//        // Given
-//		MongoCollection<Document> collection = db.getCollection(METADATA_COLLECTION);
-//		assertEquals(0, collection.count());
-//        
-//        // When
-//		Crawler crawler = new Crawler(Logger.getLogger(this.getClass().getName()), mongoHandler, null);
-//        crawler.crawlMetadataFromMavenRoots(Arrays.asList("http://central.maven.org/maven2/abbot"));
-//        
-//        // Then
-//		assertTrue(collection.count() > 0);
-//		assertEquals(2, collection.count());
-//	}
+	@Test
+	public void testStartCrawling() throws URISyntaxException {
+
+        // Given
+		MongoCollection<Document> collection = db.getCollection(METADATA_COLLECTION);
+		assertEquals(0, collection.count());
+		
+		File configFile = new File(this.getClass().getResource("crawler-config-example.conf").toURI());
+		File urlsFile = new File(this.getClass().getResource("main-crawler-test-url.list").toURI());
+        
+        // When
+		MainCrawlerHandler.startCrawling(configFile, urlsFile, null);
+
+        // Then
+		assertTrue(collection.count() > 0);
+		assertEquals(1, collection.count());
+	}
+
 }
