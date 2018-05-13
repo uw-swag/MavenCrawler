@@ -137,7 +137,7 @@ public class RabbitMQHandler {
 				
 			}
 		};
-		
+
 		try {
 			channel.basicConsume(queueName, false, consumer);
 		} catch (IOException e) {

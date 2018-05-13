@@ -1,7 +1,9 @@
 package ca.uwaterloo.swag.mavencrawler.pojo;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -42,7 +44,6 @@ public class DownloadedTest {
 	private static MongoDBHandler handler;
 	
 	private MongoDatabase db;
-	
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -195,6 +196,28 @@ public class DownloadedTest {
 		assertEquals("1", doc2.get("version"));
 		assertEquals(cal2.getTime(), doc2.get("downloadDate"));
 		assertEquals("path2", doc2.get("downloadPath"));
+	}
+	
+	@Test
+	public void testExists() {
+
+		// Given
+		Calendar cal1 = Calendar.getInstance();
+		Calendar cal2 = Calendar.getInstance();
+		cal2.add(Calendar.HOUR, 1);
+		Downloaded downloaded1 = new Downloaded("groupId", "artifactId", "repo", "1", cal1.getTime(), "path1");
+		Downloaded downloaded2 = new Downloaded("groupId", "artifactId", "repo", "2", cal2.getTime(), "path2");
+
+		MongoCollection<Document> collection = db.getCollection(Downloaded.DOWNLOADED_COLLECTION);
+		assertEquals(0, collection.count());
+		
+		// When
+		Downloaded.upsertInMongo(downloaded1, db, null);
+		assertEquals(1, collection.count());
+		
+		// Then
+		assertTrue(Downloaded.exists(downloaded1, db));
+		assertFalse(Downloaded.exists(downloaded2, db));
 	}
 
 }

@@ -24,11 +24,11 @@ public class Downloaded {
 	private String version;
 	private Date downloadDate;
 	private String downloadPath;
-	
+
 	public Downloaded() {
 		super();
 	}
-	
+
 	public Downloaded(String groupId, String artifactId, String repository, String version, Date downloadDate,
 			String downloadPath) {
 		super();
@@ -39,7 +39,7 @@ public class Downloaded {
 		this.downloadDate = downloadDate;
 		this.downloadPath = downloadPath;
 	}
-	
+
 	public String getGroupId() {
 		return groupId;
 	}
@@ -147,12 +147,24 @@ public class Downloaded {
 		MongoCollection<Downloaded> collection = mongoDatabase.getCollection(DOWNLOADED_COLLECTION, Downloaded.class);
 
 		collection.updateOne(
-				and(eq("groupId", downloaded.getGroupId()), 
-					eq("artifactId", downloaded.getArtifactId()),
-					eq("repository", downloaded.getRepository()),
-					eq("version", downloaded.getVersion())), 
+						and(eq("groupId", downloaded.getGroupId()), 
+							eq("artifactId", downloaded.getArtifactId()),
+							eq("repository", downloaded.getRepository()),
+							eq("version", downloaded.getVersion())), 
 				new Document("$set", downloaded), 
 				new UpdateOptions().upsert(true));
+	}
+
+	public static boolean exists(Downloaded downloaded, MongoDatabase mongoDatabase) {
+		MongoCollection<Downloaded> collection = mongoDatabase.getCollection(DOWNLOADED_COLLECTION, Downloaded.class);
+
+		long itemsFound = collection.count(
+									and(eq("groupId", downloaded.getGroupId()), 
+										eq("artifactId", downloaded.getArtifactId()),
+										eq("repository", downloaded.getRepository()),
+										eq("version", downloaded.getVersion())));
+
+		return (itemsFound > 0);
 	}
 
 }

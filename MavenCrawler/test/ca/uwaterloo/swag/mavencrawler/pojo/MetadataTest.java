@@ -1,6 +1,8 @@
 package ca.uwaterloo.swag.mavencrawler.pojo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -10,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import org.bson.Document;
@@ -309,6 +312,37 @@ public class MetadataTest {
 		
 		// Then
 		assertEquals(2, metadataList.size());
+	}
+	
+	@Test
+	public void testIterateAllMetadata() {
+		
+		// Given
+		Metadata metadata1 = new Metadata();
+		Metadata metadata2 = new Metadata();
+		metadata1.setGroupId("group");
+		metadata2.setGroupId("group");
+		metadata1.setArtifactId("artifact1");
+		metadata2.setArtifactId("artifact2");
+		metadata1.setVersions(Arrays.asList("1"));
+		metadata2.setVersions(Arrays.asList("2"));
+
+		Metadata.upsertInMongo(metadata1, db, null);
+		Metadata.upsertInMongo(metadata2, db, null);
+		
+		String[] expected = {"group-artifact1-1", "group-artifact2-2"};
+		List<String> results = new ArrayList<>();
+		Consumer<Metadata> metadataConsumer = metadata -> {
+			results.add(metadata.getGroupId() + "-" + 
+						metadata.getArtifactId() + "-" +
+						metadata.getVersions().get(0));
+		};
+		
+		// When
+		Metadata.iterateAllInMongo(db, metadataConsumer);
+		
+		// Then
+		assertArrayEquals(expected, results.toArray(new String[results.size()]));
 	}
 
 }

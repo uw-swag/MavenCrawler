@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -17,6 +18,7 @@ import org.bson.Document;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
@@ -247,6 +249,16 @@ public class Metadata {
 	public static List<Metadata> findAllFromMongo(MongoDatabase mongoDatabase) {
 		MongoCollection<Metadata> collection = mongoDatabase.getCollection(METADATA_COLLECTION, Metadata.class);
 		return collection.find().into(new ArrayList<Metadata>());
+	}
+	
+	public static void iterateAllInMongo(MongoDatabase mongoDatabase, Consumer<Metadata> metadataConsumer) {
+		
+		MongoCollection<Metadata> collection = mongoDatabase.getCollection(METADATA_COLLECTION, Metadata.class);
+		MongoCursor<Metadata> cursor = collection.find().iterator();
+		
+		while (cursor.hasNext()) {
+			metadataConsumer.accept(cursor.next());
+		}
 	}
 
 }

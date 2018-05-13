@@ -12,7 +12,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -83,24 +82,24 @@ public class MainCrawlerHandlerTest {
 	/**
 	 * Helper test to crawl multiple metadata from Maven Central
 	 * TODO: use mock instead of actual address
-	 * @throws URISyntaxException 
+	 * Uncomment @Test to run it on an actual server.
 	 */
 //	@Test
-//	public void testStartCrawling() throws URISyntaxException {
-//
-//        // Given
-//		MongoCollection<Document> collection = db.getCollection(METADATA_COLLECTION);
-//		assertEquals(0, collection.count());
-//		
-//		File configFile = new File(this.getClass().getResource("crawler-config-example.conf").toURI());
-//		File urlsFile = new File(this.getClass().getResource("main-crawler-test-url.list").toURI());
-//        
-//        // When
-//		MainCrawlerHandler.startCrawling(configFile, urlsFile, null);
-//
-//        // Then
-//		assertTrue(collection.count() > 0);
-//		assertEquals(1, collection.count());
-//	}
+	public void testStartCrawling() throws URISyntaxException {
+
+        // Given
+		MongoCollection<Document> collection = db.getCollection(METADATA_COLLECTION);
+		assertEquals(0, collection.count());
+		
+		File configFile = new File(this.getClass().getResource("crawler-config-example.conf").toURI());
+		File urlsFile = new File(this.getClass().getResource("main-crawler-test-url.list").toURI());
+        
+        // When
+		MainCrawlerHandler.startCrawling(configFile, urlsFile, null);
+
+        // Then
+		assertTrue(collection.count() > 0);
+		assertEquals(1, collection.count());
+	}
 
 }
