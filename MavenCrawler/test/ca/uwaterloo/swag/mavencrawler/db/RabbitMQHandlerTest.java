@@ -127,4 +127,32 @@ public class RabbitMQHandlerTest {
 		assertTrue(messageConfirmation);
 	}
 
+	/**
+	 * Uncomment @Test to run it on an actual server.
+	 */
+//	@Test
+	public void testListenFirstShouldConnect() throws InterruptedException {
+		
+		// Given
+		String sentMessage = "testMessage";
+		messageConfirmation = false;
+		
+		MessageHandler messageHandler = new MessageHandler() {
+			@Override
+			public boolean handleMessage(String receivedMessage) {
+				assertEquals(sentMessage, receivedMessage);
+				messageConfirmation = receivedMessage.equals(sentMessage);
+				return messageConfirmation;
+			}; 
+		};
+		
+		// When
+		handler.listenMessages(messageHandler);
+		handler.sendMessage(sentMessage);
+		Thread.sleep(200);
+		
+		// Then
+		assertTrue(messageConfirmation);
+	}
+
 }

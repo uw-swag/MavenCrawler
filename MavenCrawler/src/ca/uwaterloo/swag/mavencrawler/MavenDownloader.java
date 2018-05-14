@@ -9,6 +9,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -17,7 +18,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
+import ca.uwaterloo.swag.mavencrawler.db.RabbitMQHandler;
+import ca.uwaterloo.swag.mavencrawler.db.RabbitMQHandler.MessageHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.LoggerHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
@@ -29,13 +35,15 @@ public class MavenDownloader {
 
 	private Logger logger;
 	private MongoDBHandler mongoHandler;
+	private RabbitMQHandler rabbitHandler;
 	private String downloadFolder;
 
-	public MavenDownloader(Logger logger, MongoDBHandler mongoHandler, String downloadFolder) {
+	public MavenDownloader(Logger logger, MongoDBHandler mongoHandler, RabbitMQHandler rabbitHandler, String downloadFolder) {
 		super();
 		this.logger = logger;
 		this.mongoHandler = mongoHandler;
 		this.downloadFolder = downloadFolder;
+		this.rabbitHandler = rabbitHandler;
 	}
 
 	public Logger getLogger() {
@@ -49,6 +57,12 @@ public class MavenDownloader {
 	}
 	public void setMongoHandler(MongoDBHandler mongoHandler) {
 		this.mongoHandler = mongoHandler;
+	}
+	public RabbitMQHandler getRabbitHandler() {
+		return rabbitHandler;
+	}
+	public void setRabbitHandler(RabbitMQHandler rabbitHandler) {
+		this.rabbitHandler = rabbitHandler;
 	}
 	public String getDownloadFolder() {
 		return downloadFolder;
@@ -65,7 +79,7 @@ public class MavenDownloader {
 		}
 	}
 
-	public void downloadLibrariesFromMetadata(Metadata metadata) {
+	public boolean downloadLibrariesFromMetadata(Metadata metadata) {
 		
 		File libDownloadFolder = new File(this.getDownloadFolder(), metadata.getGroupId() + "." + metadata.getArtifactId());
 		
@@ -73,8 +87,10 @@ public class MavenDownloader {
 		if ((!libDownloadFolder.exists() && !libDownloadFolder.mkdirs()) ||
 			(libDownloadFolder.exists() && !libDownloadFolder.isDirectory())) {
 			LoggerHelper.log(logger, Level.SEVERE, "Error with download folder");
-			return;
+			return false;
 		}
+		
+		boolean overall_success = true;
 		
 		for (String version : metadata.getVersions()) {
 			URL url = metadata.findURLForVersion(version);
@@ -103,7 +119,10 @@ public class MavenDownloader {
 				saveDownloaded(metadata, version, downloadFile);
 			}
 			
+			overall_success = overall_success && success;
 		}
+		
+		return overall_success;
 	}
 
 	private boolean downloadLibFromURLToFile(URL url, File downloadFile) throws FileNotFoundException {
@@ -143,11 +162,44 @@ public class MavenDownloader {
 		Downloaded.upsertInMongo(downloaded, mongoHandler.getMongoDatabase(), logger);
 	}
 
+	public void listenMessages() {
+		
+		Gson gson = new Gson();
+		
+		MessageHandler messageHandler = new MessageHandler() {
+			
+			@Override
+			public boolean handleMessage(String message) {
+				
+				Downloaded received;
+				try {
+					received = gson.fromJson(message, Downloaded.class);
+				}
+				catch (JsonSyntaxException e) {
+					// Ignore any JSON errors
+					return true;
+				}
+				
+				Metadata toDownload = new Metadata();
+				toDownload.setArtifactId(received.getArtifactId());
+				toDownload.setGroupId(received.getGroupId());
+				toDownload.setRepository(received.getRepository());
+				toDownload.setVersions(Arrays.asList(received.getVersion()));
+				
+				boolean success = downloadLibrariesFromMetadata(toDownload);
+				
+				return success;
+			}
+		};
+
+		rabbitHandler.listenMessages(messageHandler);
+	}
+	
 	public static void main(String[] args) throws SecurityException, IOException {
 		
-		FileHandler fileHandler = new FileHandler("log.txt");
+		FileHandler fileHandler = new FileHandler("MavenDownloaderLog.txt");
 		fileHandler.setFormatter(new SimpleFormatter());
-		Logger logger = Logger.getLogger(MainCrawlerHandler.class.getName());
+		Logger logger = Logger.getLogger(MavenDownloader.class.getName());
 		logger.addHandler(fileHandler);
 		
 		File configFile = new File(DEFAULT_CONFIG_FILE);
@@ -163,20 +215,10 @@ public class MavenDownloader {
 		
 		logger.log(Level.INFO, "Downloading libraries...");
 		MongoDBHandler persister = MongoDBHandler.newInstance(logger, properties);
+		RabbitMQHandler rabbitHandler = RabbitMQHandler.newInstance(logger, properties);
 		
-		MavenDownloader downloader = new MavenDownloader(logger, persister, properties.getProperty(DOWNLOAD_FOLDER_PROPERTY));
-		
-		while (true) {
-			// Keep downloading indefinitely
-			downloader.downloadLibraries();
-			
-			// Wait 5 minutes while more libraries metadata are crawled
-			try {
-				Thread.sleep(5*60*1000);
-			} catch (InterruptedException e) {
-				LoggerHelper.log(logger, Level.INFO, "Error with thread interruption while waiting for downloads.");
-			}
-		}
+		MavenDownloader downloader = new MavenDownloader(logger, persister, rabbitHandler, properties.getProperty(DOWNLOAD_FOLDER_PROPERTY));
+		downloader.listenMessages();
 	}
 
 }

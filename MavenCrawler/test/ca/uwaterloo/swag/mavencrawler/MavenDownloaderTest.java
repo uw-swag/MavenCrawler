@@ -20,6 +20,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
 import ca.uwaterloo.swag.mavencrawler.db.MongoDBHandler;
+import ca.uwaterloo.swag.mavencrawler.db.RabbitMQHandler;
 import ca.uwaterloo.swag.mavencrawler.helpers.TestHelper;
 import ca.uwaterloo.swag.mavencrawler.pojo.Downloaded;
 import ca.uwaterloo.swag.mavencrawler.pojo.Metadata;
@@ -42,6 +43,7 @@ public class MavenDownloaderTest {
 	private static MongodProcess _mongod;
 	private static MongoClient _mongo;
 	private static MongoDBHandler mongoHandler;
+	private static RabbitMQHandler rabbitHandler;
 	
 	private File downloadFolder;
 	private MongoDatabase db;
@@ -62,6 +64,13 @@ public class MavenDownloaderTest {
 		mongoHandler.setDatabaseName("TestDatabase");
 
 		_mongo = new MongoClient("localhost", 12345);
+		
+		rabbitHandler = RabbitMQHandler.newInstance(Logger.getLogger(MavenDownloaderTest.class.getName()));
+		rabbitHandler.setHost("localhost");
+		rabbitHandler.setPort(5672);
+		rabbitHandler.setUsername("guest");
+		rabbitHandler.setPassword("guest");
+		rabbitHandler.setQueueName("test_queue");
 	}
 
 	@AfterClass
@@ -70,19 +79,78 @@ public class MavenDownloaderTest {
 		_mongodExe.stop();
 	}
 
+	/**
+	 * TODO: use mock instead of actual server
+	 */
 	@Before
 	public void setUp() throws Exception {
 		db = _mongo.getDatabase("TestDatabase");
 		downloadFolder = new File("tempDownload");
 		assertTrue(TestHelper.deleteRecursive(downloadFolder));
-		downloader = new MavenDownloader(Logger.getLogger(this.getClass().getName()), mongoHandler, downloadFolder.getAbsolutePath());
+		downloader = new MavenDownloader(Logger.getLogger(this.getClass().getName()), 
+				mongoHandler, 
+				rabbitHandler,
+				downloadFolder.getAbsolutePath());
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		rabbitHandler.getChannel().queueDelete(rabbitHandler.getQueueName());
 		db.drop();
 		db = null;
 		assertTrue(TestHelper.deleteRecursive(downloadFolder));
+	}
+
+	/**
+	 * TODO: use mock instead of actual addresses
+	 * @throws InterruptedException 
+	 */
+//	@Test
+	public void testListenToMessages() throws InterruptedException {
+		
+		// Given
+		String message = "{\"groupId\":\"br.com.ingenieux\","
+				+ "\"artifactId\":\"elasticbeanstalk-docker-dropwizard-webapp-archetype\","
+				+ "\"repository\":\"http://central.maven.org/maven2\","
+				+ "\"version\":\"1.5.0\"}";
+		
+		File expectedLibraryFolder = new File(downloadFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype");
+		assertFalse(expectedLibraryFolder.exists());
+		
+		// When
+		downloader.listenMessages();
+		rabbitHandler.sendMessage(message);
+		Thread.sleep(200);
+		
+		// Then
+		assertTrue(downloadFolder.exists());
+		assertTrue(downloadFolder.isDirectory());
+		assertTrue(expectedLibraryFolder.exists());
+		assertTrue(expectedLibraryFolder.isDirectory());
+		assertEquals(1, downloadFolder.list().length);
+		assertEquals(1, expectedLibraryFolder.list().length);
+
+		File lib = new File(expectedLibraryFolder, "br.com.ingenieux.elasticbeanstalk-docker-dropwizard-webapp-archetype-1.5.0.jar");
+		assertTrue(lib.exists());
+	}
+
+	/**
+	 * TODO: use mock instead of actual addresses
+	 * @throws InterruptedException 
+	 */
+//	@Test
+	public void testWrongMessageShouldBeIgnored() throws InterruptedException {
+		
+		// Given
+		String message = "testMessage";
+		
+		// When
+		downloader.listenMessages();
+		rabbitHandler.sendMessage(message);
+		Thread.sleep(200);
+		
+		// Then
+		// Should not throw exception
 	}
 
 	/**

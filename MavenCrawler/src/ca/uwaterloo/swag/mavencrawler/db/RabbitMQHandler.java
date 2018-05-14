@@ -97,7 +97,12 @@ public class RabbitMQHandler {
 	public void setQueueName(String queueName) {
 		this.queueName = queueName;
 	}
-
+	public Connection getConnection() {
+		return connection;
+	}
+	public Channel getChannel() {
+		return channel;
+	}
 	public void sendMessage(String message) {
 		
 		if (connect()) {
@@ -119,31 +124,40 @@ public class RabbitMQHandler {
 	
 	public void listenMessages(MessageHandler messageHandler) {
 
-		Consumer consumer = new DefaultConsumer(channel) {
-			@Override
-			public void handleDelivery(String consumerTag, Envelope envelope,
-					AMQP.BasicProperties properties, byte[] body)
-							throws IOException {
+		if (connect()) {
+			
+			try {
 				
-				String message = new String(body, "UTF-8");
-				System.out.println(" [x] Received '" + message + "'");
+				Consumer consumer = new DefaultConsumer(channel) {
+					@Override
+					public void handleDelivery(String consumerTag, Envelope envelope,
+							AMQP.BasicProperties properties, byte[] body)
+									throws IOException {
+						
+						String message = new String(body, "UTF-8");
+						System.out.println(" [x] Received '" + message + "'");
+						
+						if (messageHandler.handleMessage(message)) {
+							System.out.println(this.getChannel());
+							System.out.println(envelope);
+							this.getChannel().basicAck(envelope.getDeliveryTag(), false);
+						}
+						else {
+							this.getChannel().basicReject(envelope.getDeliveryTag(), true);
+						}
+						
+					}
+				};
 				
-				if (messageHandler.handleMessage(message)) {
-					this.getChannel().basicAck(envelope.getDeliveryTag(), false);
-				}
-				else {
-					this.getChannel().basicReject(envelope.getDeliveryTag(), true);
-				}
+				channel.basicConsume(queueName, false, consumer);
 				
+			} catch (IOException e) {
+				LoggerHelper.logError(logger, e, "Could not listen to messages from RabbitMQ.");
 			}
-		};
-
-		try {
-			channel.basicConsume(queueName, false, consumer);
-		} catch (IOException e) {
-			LoggerHelper.logError(logger, e, "Could not listen to messages from RabbitMQ.");
 		}
-		
+		else {
+			LoggerHelper.log(logger, Level.SEVERE, "Could not connect to RabbitMQ.");
+		}
 	}
 	
 	public boolean isConnected() {
