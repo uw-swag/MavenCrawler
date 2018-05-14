@@ -19,7 +19,7 @@ public class DownloadEnqueuer {
 
 	private static final String DEFAULT_CONFIG_FILE = "mavencrawler.conf"; 
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		
 		Logger logger = Logger.getLogger(MainCrawlerHandler.class.getName());
 		File configFile = new File(DEFAULT_CONFIG_FILE);
@@ -35,7 +35,12 @@ public class DownloadEnqueuer {
 				
 		MongoDBHandler mongoHandler = MongoDBHandler.newInstance(logger, properties);
 		RabbitMQHandler rabbitHandler = RabbitMQHandler.newInstance(logger, properties);
-		enqueue(mongoHandler, rabbitHandler, logger);
+		
+		while (true) {
+			enqueue(mongoHandler, rabbitHandler, logger);
+			// Wait one hour to enqueue again
+			Thread.sleep(60*60*1000);
+		}
 	}
 
 	public static void enqueue(MongoDBHandler mongoHandler, RabbitMQHandler rabbitHandler, Logger logger) {

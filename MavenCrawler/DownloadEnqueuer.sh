@@ -1,2 +1,2 @@
 #!/bin/sh
-java -cp MavenCrawler.jar ca.uwaterloo.swag.mavencrawler.DownloadEnqueuer
+java -jar DownloadEnqueuer.jar

@@ -1,0 +1,10 @@
+[Unit]
+Description=DownloadEnqueuer Java app
+[Service]
+PIDFile=/tmp/DownloadEnqueuer.pid
+Restart=always
+KillSignal=SIGQUIT
+WorkingDirectory=/MavenCrawler/
+ExecStart=/MavenCrawler/DownloadEnqueuer.sh
+[Install]
+WantedBy=multi-user.target
