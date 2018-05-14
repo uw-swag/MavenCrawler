@@ -72,10 +72,10 @@ public class DownloadEnqueuerTest {
 	@Before
 	public void setUp() throws Exception {
 		rabbitHandler = RabbitMQHandler.newInstance(Logger.getLogger(RabbitMQHandlerTest.class.getName()));
-		rabbitHandler.setHost("cassianomongo.canadaeast.cloudapp.azure.com");
+		rabbitHandler.setHost("localhost");
 		rabbitHandler.setPort(5672);
 		rabbitHandler.setUsername("guest");
-		rabbitHandler.setPassword("softwarearchitecturegroup");
+		rabbitHandler.setPassword("guest");
 		rabbitHandler.setQueueName("test_queue");
 
 		db = mongoHandler.getMongoDatabase();
