@@ -1,0 +1,10 @@
+[Unit]
+Description=MavenDownloader Java app
+[Service]
+PIDFile=/tmp/MavenDownloader.pid
+Restart=always
+KillSignal=SIGQUIT
+WorkingDirectory=/MavenCrawler/
+ExecStart=/MavenCrawler/MavenDownloader.sh
+[Install]
+WantedBy=multi-user.target
