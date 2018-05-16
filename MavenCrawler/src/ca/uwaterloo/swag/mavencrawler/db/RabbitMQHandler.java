@@ -138,18 +138,16 @@ public class RabbitMQHandler {
 						System.out.println(" [x] Received '" + message + "'");
 						
 						if (messageHandler.handleMessage(message)) {
-							System.out.println(this.getChannel());
-							System.out.println(envelope);
 							this.getChannel().basicAck(envelope.getDeliveryTag(), false);
 						}
 						else {
-							this.getChannel().basicReject(envelope.getDeliveryTag(), true);
+							this.getChannel().basicReject(envelope.getDeliveryTag(), false);
 						}
 						
 					}
 				};
 				
-				channel.basicConsume(queueName, false, consumer);
+				channel.basicConsume(queueName, true, consumer);
 				
 			} catch (IOException e) {
 				LoggerHelper.logError(logger, e, "Could not listen to messages from RabbitMQ.");
