@@ -137,13 +137,7 @@ public class RabbitMQHandler {
 						String message = new String(body, "UTF-8");
 						System.out.println(" [x] Received '" + message + "'");
 						
-						if (messageHandler.handleMessage(message)) {
-							this.getChannel().basicAck(envelope.getDeliveryTag(), false);
-						}
-						else {
-							this.getChannel().basicReject(envelope.getDeliveryTag(), false);
-						}
-						
+						messageHandler.handleMessage(message);
 					}
 				};
 				
