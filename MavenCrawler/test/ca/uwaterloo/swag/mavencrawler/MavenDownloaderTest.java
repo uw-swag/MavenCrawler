@@ -95,7 +95,9 @@ public class MavenDownloaderTest {
 
 	@After
 	public void tearDown() throws Exception {
-		rabbitHandler.getChannel().queueDelete(rabbitHandler.getQueueName());
+		if (rabbitHandler.isConnected()) {
+			rabbitHandler.getChannel().queueDelete(rabbitHandler.getQueueName());
+		}
 		db.drop();
 		db = null;
 		assertTrue(TestHelper.deleteRecursive(downloadFolder));
